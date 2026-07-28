@@ -6,8 +6,11 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isAuthRoute = req.nextUrl.pathname.startsWith("/login");
   const isApiAuthRoute = req.nextUrl.pathname.startsWith("/api/auth");
+  // External services (e.g. Instantly.ai) call this with a shared secret
+  // instead of a session cookie — it authenticates itself, see the route handler.
+  const isWebhookRoute = req.nextUrl.pathname.startsWith("/api/webhooks/");
 
-  if (isApiAuthRoute) {
+  if (isApiAuthRoute || isWebhookRoute) {
     return NextResponse.next();
   }
 
