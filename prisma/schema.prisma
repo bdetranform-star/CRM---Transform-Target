@@ -1,0 +1,123 @@
+// Prisma schema for Transform Targets CRM
+// Datasource is SQLite for local dev. To move to PostgreSQL later:
+//   1. change provider to "postgresql"
+//   2. change url to an env var pointing at your Postgres instance
+//   3. run `prisma migrate dev` again (SQLite-only types like `@default(uuid())` remain valid)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A user who can log in to the CRM (NextAuth credentials provider).
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum LeadStatus {
+  OPEN_PROSPECT
+  SDR_IN_PROCESS
+  EMAIL_SENT
+  CONNECTED
+  BAD_TIMING
+  NOT_INTERESTED
+  DEAD_LEAD
+  DUPLICATE
+}
+
+enum Industry {
+  IFM
+  FACILITY_MANAGEMENT
+  FACILITY_SERVICES
+  FACILITY_MAINTENANCE
+  JANITORIAL_CLEANING
+  HVAC
+  FIRE_PROTECTION
+  OTHER
+}
+
+enum LeadSource {
+  COLD_EMAIL
+  LINKEDIN
+  COLD_CALL
+  SMS
+  REFERRAL
+  INBOUND
+  EVENT
+  OTHER
+}
+
+enum Channel {
+  EMAIL
+  LINKEDIN
+  CALL
+  SMS
+  NOTE
+}
+
+enum Direction {
+  OUTBOUND
+  INBOUND
+}
+
+model Contact {
+  id             String     @id @default(uuid())
+  firstName      String
+  lastName       String?
+  email          String     @unique
+  phone          String?
+  linkedinUrl    String?
+  company        String?
+  contactOwner   String
+  leadStatus     LeadStatus @default(OPEN_PROSPECT)
+  industry       Industry   @default(OTHER)
+  industryDetail String?
+  leadSource     LeadSource @default(OTHER)
+  /// Position in the 4-channel cadence: 0=Email 1, 1=LinkedIn touch, 2=Call, 3=SMS, 4+=repeat/breakup
+  sequenceStep   Int        @default(0)
+  smsOptOut      Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  touches Touch[]
+
+  @@index([leadStatus])
+  @@index([industry])
+  @@index([contactOwner])
+  @@index([sequenceStep])
+}
+
+model Touch {
+  id        String    @id @default(uuid())
+  contactId String
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel   Channel
+  direction Direction
+  /// e.g. CALL: CONNECTED / VOICEMAIL / NO_ANSWER / WRONG_NUMBER / CALLBACK_SCHEDULED
+  /// SMS: SENT / DELIVERED / REPLIED / OPTED_OUT
+  /// LINKEDIN: CONNECTION_SENT / CONNECTED / MESSAGE_SENT / REPLIED
+  outcome   String?
+  body      String?
+  createdAt DateTime  @default(now())
+
+  @@index([contactId])
+  @@index([channel])
+}
+
+model SmsTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  /// Supports {{firstName}}, {{company}}, {{industryDetail}} tokens
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

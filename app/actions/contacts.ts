@@ -1,0 +1,217 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
+
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/require-auth";
+import {
+  contactCreateSchema,
+  contactUpdateSchema,
+  bulkStatusChangeSchema,
+  bulkDeleteSchema,
+  leadStatusEnum,
+  industryEnum,
+} from "@/lib/validations";
+import { LEAD_STATUS_ORDER } from "@/lib/status-config";
+
+export async function getBoardContacts() {
+  await requireAuth();
+
+  const contacts = await prisma.contact.findMany({
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      company: true,
+      email: true,
+      leadStatus: true,
+      industry: true,
+      contactOwner: true,
+      sequenceStep: true,
+    },
+  });
+
+  const grouped = Object.fromEntries(
+    LEAD_STATUS_ORDER.map((status) => [status, [] as typeof contacts])
+  ) as Record<(typeof LEAD_STATUS_ORDER)[number], typeof contacts>;
+
+  for (const contact of contacts) {
+    grouped[contact.leadStatus].push(contact);
+  }
+
+  return grouped;
+}
+
+export type ContactsTableParams = {
+  page: number;
+  pageSize: number;
+  search?: string;
+  industry?: string;
+  contactOwner?: string;
+  leadStatus?: string;
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+};
+
+const SORTABLE_FIELDS = new Set([
+  "firstName",
+  "lastName",
+  "email",
+  "company",
+  "contactOwner",
+  "leadStatus",
+  "industry",
+  "leadSource",
+  "sequenceStep",
+  "createdAt",
+  "updatedAt",
+]);
+
+export async function getContactsTable(params: ContactsTableParams) {
+  await requireAuth();
+
+  const page = Math.max(1, params.page);
+  const pageSize = Math.min(200, Math.max(1, params.pageSize));
+
+  const where: Prisma.ContactWhereInput = {};
+
+  if (params.search) {
+    where.OR = [
+      { firstName: { contains: params.search } },
+      { lastName: { contains: params.search } },
+      { company: { contains: params.search } },
+      { email: { contains: params.search } },
+    ];
+  }
+
+  if (params.industry) {
+    const parsedIndustry = industryEnum.safeParse(params.industry);
+    if (parsedIndustry.success) where.industry = parsedIndustry.data;
+  }
+
+  if (params.leadStatus) {
+    const parsedStatus = leadStatusEnum.safeParse(params.leadStatus);
+    if (parsedStatus.success) where.leadStatus = parsedStatus.data;
+  }
+
+  if (params.contactOwner) {
+    where.contactOwner = params.contactOwner;
+  }
+
+  const sortField =
+    params.sortField && SORTABLE_FIELDS.has(params.sortField) ? params.sortField : "updatedAt";
+  const sortDirection = params.sortDirection === "asc" ? "asc" : "desc";
+
+  const [rows, total] = await Promise.all([
+    prisma.contact.findMany({
+      where,
+      orderBy: { [sortField]: sortDirection },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        touches: {
+          where: { channel: "CALL" },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    }),
+    prisma.contact.count({ where }),
+  ]);
+
+  const rowsWithCallStats = rows.map(({ touches, ...contact }) => ({
+    ...contact,
+    callCount: touches.length,
+    lastCallOutcome: touches[0]?.outcome ?? null,
+  }));
+
+  return {
+    rows: rowsWithCallStats,
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+export async function getContactOwners() {
+  await requireAuth();
+  const owners = await prisma.contact.findMany({
+    distinct: ["contactOwner"],
+    select: { contactOwner: true },
+    orderBy: { contactOwner: "asc" },
+  });
+  return owners.map((o) => o.contactOwner);
+}
+
+export async function getContactDetail(id: string) {
+  await requireAuth();
+  return prisma.contact.findUnique({
+    where: { id },
+    include: {
+      touches: { orderBy: { createdAt: "desc" } },
+    },
+  });
+}
+
+export async function createContact(input: unknown) {
+  await requireAuth();
+  const data = contactCreateSchema.parse(input);
+
+  const contact = await prisma.contact.create({ data });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+  return contact;
+}
+
+export async function updateContact(input: unknown) {
+  await requireAuth();
+  const { id, ...data } = contactUpdateSchema.parse(input);
+
+  const contact = await prisma.contact.update({ where: { id }, data });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+  revalidatePath("/linkedin");
+  revalidatePath("/calls");
+  return contact;
+}
+
+export async function updateContactStatus(id: string, leadStatus: string) {
+  await requireAuth();
+  const parsedId = z.string().uuid().parse(id);
+  const parsedStatus = leadStatusEnum.parse(leadStatus);
+
+  const contact = await prisma.contact.update({
+    where: { id: parsedId },
+    data: { leadStatus: parsedStatus },
+  });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+  return contact;
+}
+
+export async function deleteContact(id: string) {
+  await requireAuth();
+  const parsedId = z.string().uuid().parse(id);
+  await prisma.contact.delete({ where: { id: parsedId } });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+}
+
+export async function bulkUpdateStatus(input: unknown) {
+  await requireAuth();
+  const { ids, leadStatus } = bulkStatusChangeSchema.parse(input);
+  await prisma.contact.updateMany({ where: { id: { in: ids } }, data: { leadStatus } });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+}
+
+export async function bulkDeleteContacts(input: unknown) {
+  await requireAuth();
+  const { ids } = bulkDeleteSchema.parse(input);
+  await prisma.contact.deleteMany({ where: { id: { in: ids } } });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+}
