@@ -21,6 +21,6 @@ Open [http://localhost:3000](http://localhost:3000). Demo login:
 
 ## Tech stack
 
-Next.js 15 (App Router, TypeScript) · Prisma + SQLite · NextAuth.js ·
+Next.js 15 (App Router, TypeScript) · Prisma + PostgreSQL · NextAuth.js ·
 Tailwind CSS + shadcn/ui · TanStack Table · dnd-kit · react-hook-form + zod ·
 papaparse · Recharts.

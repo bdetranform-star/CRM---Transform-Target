@@ -6,7 +6,10 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
 ## Tech stack
 
 - **Next.js 15** (App Router, TypeScript, React 19)
-- **Prisma ORM** on **SQLite** for local dev (see "Switching to PostgreSQL" below)
+- **Prisma ORM** on **PostgreSQL** (e.g. Neon) — required in production since
+  Vercel's filesystem is ephemeral and won't persist a SQLite file across
+  deploys/instances. `npm run build` runs `prisma generate && prisma migrate
+  deploy` before `next build` so migrations apply automatically on deploy.
 - **NextAuth.js v5 (beta)** — credentials provider (email/password), JWT sessions
 - **Tailwind CSS v4** + a hand-rolled shadcn/ui-style component set (`components/ui`)
 - **TanStack Table** — the Contacts table view
@@ -116,9 +119,11 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   import is parsed **client-side** with papaparse, header-detected
   (`detectField`/`isFullNameHeader`/`detectIndustry`), previewed (first 6
   rows), then POSTed as JSON to `/api/contacts/import` for the actual
-  zod-validated bulk insert. Note: SQLite's `createMany` doesn't support
-  `skipDuplicates` (Postgres/MySQL only), so the import route pre-fetches
-  existing emails and filters the batch manually instead.
+  zod-validated bulk insert. The route pre-fetches existing emails and
+  filters the batch manually rather than relying on `createMany`'s
+  `skipDuplicates` (this predates the Postgres switch, when the app ran on
+  SQLite, which doesn't support that option — it still works fine on
+  Postgres, just could be simplified to `skipDuplicates: true` if desired).
 - **Instantly.ai webhook** (`app/api/webhooks/instantly/route.ts`,
   `lib/instantly.ts`) — verifies a shared secret
   (`INSTANTLY_WEBHOOK_SECRET`, checked against the `x-instantly-secret`
@@ -186,26 +191,20 @@ on `Touch.contactId` — deleting a contact deletes its touch history.
 - **Server Action files** (`app/actions/*.ts`) may only export async
   functions (and types) — Next.js enforces this. Put sync helpers in `lib/`.
 
-## Switching from SQLite to PostgreSQL
+## Database / deployment
 
-The schema is intentionally structured so this is just a datasource change:
+`prisma/schema.prisma`'s `datasource db` targets PostgreSQL, reading
+`DATABASE_URL` from the environment (a Neon connection string in
+production). Vercel's filesystem is ephemeral — a SQLite file wouldn't
+survive across deploys or serverless instances — so Postgres is required
+there; for local dev, point `DATABASE_URL` at any Postgres instance
+(local or a Neon branch).
 
-1. In `prisma/schema.prisma`, change the `datasource db` block:
-   ```prisma
-   datasource db {
-     provider = "postgresql"
-     url      = env("DATABASE_URL")
-   }
-   ```
-2. Point `DATABASE_URL` at a real Postgres instance in `.env`.
-3. Run `npx prisma migrate dev` again to regenerate migrations for Postgres.
-4. Optional cleanup once on Postgres: the `app/api/contacts/import/route.ts`
-   dedup workaround (pre-fetching existing emails instead of
-   `skipDuplicates`) can be simplified back to
-   `prisma.contact.createMany({ data, skipDuplicates: true })`, since that
-   option is Postgres/MySQL-only.
-
-No application code depends on SQLite-specific behavior otherwise.
+`npm run build` is `prisma generate && prisma migrate deploy && next build`,
+so pushing new migrations to the deployed branch applies them automatically
+on the next Vercel build — no manual `migrate deploy` step needed. Local
+schema changes still go through `npx prisma migrate dev` as usual to create
+the migration file, which then gets picked up by `migrate deploy` on deploy.
 
 ## Environment variables
 

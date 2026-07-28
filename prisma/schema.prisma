@@ -1,15 +1,13 @@
 // Prisma schema for Transform Targets CRM
-// Datasource is SQLite for local dev. To move to PostgreSQL later:
-//   1. change provider to "postgresql"
-//   2. change url to an env var pointing at your Postgres instance
-//   3. run `prisma migrate dev` again (SQLite-only types like `@default(uuid())` remain valid)
+// Datasource is PostgreSQL (e.g. Neon), since Vercel's filesystem is
+// ephemeral and won't persist a SQLite file across deploys/instances.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
