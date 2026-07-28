@@ -1,0 +1,112 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a2233;
+  --card: #ffffff;
+  --card-foreground: #1a2233;
+  --popover: #ffffff;
+  --popover-foreground: #1a2233;
+
+  /* Navy — sidebar / brand */
+  --navy: #101d3d;
+  --navy-foreground: #ffffff;
+  --navy-muted: #1c2c52;
+  --navy-border: #2a3a63;
+
+  /* Warm accent — primary actions, active states */
+  --accent-warm: #e8763a;
+  --accent-warm-foreground: #ffffff;
+  --accent-warm-hover: #d4652c;
+
+  --primary: var(--accent-warm);
+  --primary-foreground: var(--accent-warm-foreground);
+  --secondary: #f1f4f9;
+  --secondary-foreground: #1a2233;
+  --muted: #f1f4f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f4f9;
+  --accent-foreground: #1a2233;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: var(--accent-warm);
+  --radius: 0.625rem;
+
+  /* Status pill colors — soft backgrounds matching each stage */
+  --status-open-prospect-bg: #eef2ff;
+  --status-open-prospect-fg: #4338ca;
+  --status-sdr-in-process-bg: #fef9c3;
+  --status-sdr-in-process-fg: #854d0e;
+  --status-email-sent-bg: #e0f2fe;
+  --status-email-sent-fg: #0369a1;
+  --status-connected-bg: #dcfce7;
+  --status-connected-fg: #15803d;
+  --status-bad-timing-bg: #fef3c7;
+  --status-bad-timing-fg: #92400e;
+  --status-not-interested-bg: #fee2e2;
+  --status-not-interested-fg: #b91c1c;
+  --status-dead-lead-bg: #f1f5f9;
+  --status-dead-lead-fg: #475569;
+  --status-duplicate-bg: #f3e8ff;
+  --status-duplicate-fg: #7e22ce;
+
+  /* Channel colors — consistent per-channel identity, used in table/timeline/dashboard */
+  --channel-email: #0284c7;
+  --channel-linkedin: #0a66c2;
+  --channel-call: #16a34a;
+  --channel-sms: #e8763a;
+  --channel-note: #64748b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-navy-muted: var(--navy-muted);
+  --color-navy-border: var(--navy-border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@layer utilities {
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
