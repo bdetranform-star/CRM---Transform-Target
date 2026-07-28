@@ -30,7 +30,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@transformtargets.com", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   async function onSubmit(values: LoginValues) {
@@ -78,9 +78,6 @@ export function LoginForm() {
       <Button type="submit" disabled={isSubmitting} className="mt-2">
         {isSubmitting ? "Signing in..." : "Sign in"}
       </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        Demo login: admin@transformtargets.com / password123
-      </p>
     </form>
   );
 }

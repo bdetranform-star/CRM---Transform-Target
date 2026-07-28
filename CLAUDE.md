@@ -23,6 +23,9 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
 ### Routing
 
 - `app/login/page.tsx` — public login page.
+- `app/setup/page.tsx` — public one-time bootstrap page: a form to create the
+  first admin login (email + password) when the `User` table is empty. See
+  "Data layer" below for how reuse is prevented.
 - `app/(app)/` — route group for everything behind auth, sharing
   `app/(app)/layout.tsx` (navy `Sidebar` + `Topbar` shell). Pages:
   - `/` — Board (Kanban) view, the default view
@@ -32,9 +35,10 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
   - `/sms-templates` — SMS template manager
   - `/dashboard` — reporting dashboard + sequence tracker widget
   - `/import-export` — CSV import/export
-- `middleware.ts` — protects every route except `/login`, `/api/auth/*`, and
-  `/api/webhooks/*` (external callers like Instantly.ai can't send a session
-  cookie; that route authenticates itself via a shared secret instead).
+- `middleware.ts` — protects every route except `/login`, `/setup`,
+  `/api/auth/*`, and `/api/webhooks/*` (external callers like Instantly.ai
+  can't send a session cookie; that route authenticates itself via a shared
+  secret instead).
 
 ### Data layer
 
@@ -50,8 +54,18 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
     `password123`) — fine for local dev, but that hardcoded password
     shouldn't land in a real deployment. Set `SKIP_DEMO_SEED=true` to skip
     it; pair that with `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars to seed a
-    real admin login instead (bcrypt-hashed like any other user). This is
-    the intended way to seed a production database the first time.
+    real admin login instead (bcrypt-hashed like any other user), if you'd
+    rather bootstrap via a deploy script than the `/setup` page below.
+  - The **first admin account for a production deploy is normally created
+    through `/setup`** (`app/setup/page.tsx`, `app/actions/setup.ts`), not
+    this script: a public, one-time-use page that renders a create-account
+    form only while `User` has zero rows. `createFirstAdmin` re-checks the
+    count is still zero inside a transaction immediately before inserting,
+    so the first submission (from this page, or a direct call from anyone
+    who finds the URL) wins and every later one is rejected — no auth guard
+    is possible before an account exists, so this check is the only thing
+    standing in for one. Once any user exists, `/setup` just shows "already
+    completed" and links to `/login`.
 
 ### Mutations: Server Actions, not API routes (except where a route is required)
 

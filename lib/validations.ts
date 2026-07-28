@@ -59,6 +59,11 @@ const optionalTrimmedString = z
   .optional()
   .transform((v) => (v === "" ? undefined : v));
 
+export const setupAdminSchema = z.object({
+  email: z.string().trim().email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export const contactCreateSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: optionalTrimmedString,

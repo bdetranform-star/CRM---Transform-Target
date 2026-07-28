@@ -14,8 +14,12 @@ export default auth((req) => {
   // External services (e.g. Instantly.ai) call this with a shared secret
   // instead of a session cookie — it authenticates itself, see the route handler.
   const isWebhookRoute = req.nextUrl.pathname.startsWith("/api/webhooks/");
+  // Public by necessity: no session can exist yet before the first admin
+  // account is created. The page/action guard themselves against reuse once
+  // a user exists — see app/actions/setup.ts.
+  const isSetupRoute = req.nextUrl.pathname.startsWith("/setup");
 
-  if (isApiAuthRoute || isWebhookRoute) {
+  if (isApiAuthRoute || isWebhookRoute || isSetupRoute) {
     return NextResponse.next();
   }
 
