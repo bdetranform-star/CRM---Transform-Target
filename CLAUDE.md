@@ -42,10 +42,16 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
   global-cache pattern to survive HMR).
 - `prisma/schema.prisma` — see "Data model" below.
 - `prisma/seed.ts` — seeds 6 realistic sample leads (one per lead status /
-  industry, with matching touch history) and 100 placeholder
-  `contactOwner` emails in the pattern `first.last@transformtargets-*.com`.
-  Also seeds a demo login user and 3 starter SMS templates. Run with
-  `npx prisma db seed` (wired up via `prisma.config.ts`).
+  industry, with matching touch history), 100 placeholder `contactOwner`
+  emails in the pattern `first.last@transformtargets-*.com`, and 3 starter
+  SMS templates. Run with `npx prisma db seed` (wired up via
+  `prisma.config.ts`).
+  - By default it also seeds a demo login (`admin@transformtargets.com` /
+    `password123`) — fine for local dev, but that hardcoded password
+    shouldn't land in a real deployment. Set `SKIP_DEMO_SEED=true` to skip
+    it; pair that with `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars to seed a
+    real admin login instead (bcrypt-hashed like any other user). This is
+    the intended way to seed a production database the first time.
 
 ### Mutations: Server Actions, not API routes (except where a route is required)
 
@@ -211,7 +217,9 @@ the migration file, which then gets picked up by `migrate deploy` on deploy.
 See `.env.example`. Required: `DATABASE_URL`, `AUTH_SECRET` (NextAuth v5;
 `NEXTAUTH_SECRET`/`NEXTAUTH_URL` are also set for compatibility). Optional,
 for the Instantly.ai stretch goal: `INSTANTLY_API_KEY`,
-`INSTANTLY_WEBHOOK_SECRET`.
+`INSTANTLY_WEBHOOK_SECRET`. Seed-only (not read by the app itself, only by
+`prisma/seed.ts`): `SKIP_DEMO_SEED`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` — see
+"Data layer" above.
 
 ## Local dev
 

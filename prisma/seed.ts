@@ -133,17 +133,38 @@ async function main() {
   console.log("Seeding contactOwner pool...");
   const owners = buildSeedOwners(100);
 
-  console.log("Seeding demo login user...");
-  const passwordHash = await bcrypt.hash("password123", 10);
-  await prisma.user.upsert({
-    where: { email: "admin@transformtargets.com" },
-    update: {},
-    create: {
-      email: "admin@transformtargets.com",
-      name: "Admin",
-      password: passwordHash,
-    },
-  });
+  if (process.env.SKIP_DEMO_SEED === "true") {
+    if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+      console.log(`Seeding admin login user (${process.env.ADMIN_EMAIL})...`);
+      const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+      await prisma.user.upsert({
+        where: { email: process.env.ADMIN_EMAIL },
+        update: {},
+        create: {
+          email: process.env.ADMIN_EMAIL,
+          name: "Admin",
+          password: passwordHash,
+        },
+      });
+    } else {
+      console.log(
+        "SKIP_DEMO_SEED is set and no ADMIN_EMAIL/ADMIN_PASSWORD provided — skipping login user entirely. " +
+          "Set ADMIN_EMAIL and ADMIN_PASSWORD to seed a real admin account instead."
+      );
+    }
+  } else {
+    console.log("Seeding demo login user...");
+    const passwordHash = await bcrypt.hash("password123", 10);
+    await prisma.user.upsert({
+      where: { email: "admin@transformtargets.com" },
+      update: {},
+      create: {
+        email: "admin@transformtargets.com",
+        name: "Admin",
+        password: passwordHash,
+      },
+    });
+  }
 
   console.log("Seeding sample contacts...");
   for (let i = 0; i < SAMPLE_LEADS.length; i++) {
