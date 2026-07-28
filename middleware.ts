@@ -1,6 +1,11 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/auth";
+import { authConfig } from "@/auth.config";
+
+// Uses the edge-safe config directly (no Prisma/bcryptjs) since middleware
+// runs in the Edge runtime, which neither supports.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
