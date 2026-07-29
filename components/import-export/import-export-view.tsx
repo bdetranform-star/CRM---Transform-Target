@@ -24,7 +24,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { mapCsvRows, type MappedImportRow } from "@/lib/csv-import";
-import { INDUSTRY_LABELS } from "@/lib/status-config";
+import { INDUSTRY_LABELS, TEAM_MEMBER_LABELS } from "@/lib/status-config";
 
 const PREVIEW_ROWS = 6;
 
@@ -138,7 +138,7 @@ export function ImportExportView({ owners }: { owners: string[] }) {
                   <SelectContent className="max-h-72">
                     {owners.map((owner) => (
                       <SelectItem key={owner} value={owner}>
-                        {owner}
+                        {TEAM_MEMBER_LABELS[owner as keyof typeof TEAM_MEMBER_LABELS]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -157,7 +157,7 @@ export function ImportExportView({ owners }: { owners: string[] }) {
                         <TableHead>First Name</TableHead>
                         <TableHead>Last Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Phone</TableHead>
+                        <TableHead>Work Phone</TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead>Industry</TableHead>
                       </TableRow>
@@ -168,7 +168,7 @@ export function ImportExportView({ owners }: { owners: string[] }) {
                           <TableCell>{row.firstName}</TableCell>
                           <TableCell>{row.lastName}</TableCell>
                           <TableCell>{row.email}</TableCell>
-                          <TableCell>{row.phone}</TableCell>
+                          <TableCell>{row.workPhone}</TableCell>
                           <TableCell>{row.company}</TableCell>
                           <TableCell>{INDUSTRY_LABELS[row.industry]}</TableCell>
                         </TableRow>

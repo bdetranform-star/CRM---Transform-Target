@@ -1,13 +1,15 @@
-import type { Industry } from "@prisma/client";
+import type { Industry, IndustryDetail, TeamMember } from "@prisma/client";
+import { TEAM_MEMBER_LABELS } from "@/lib/status-config";
 
 export type ImportField =
   | "firstName"
   | "lastName"
   | "email"
-  | "phone"
+  | "workPhone"
   | "linkedinUrl"
   | "company"
   | "industry"
+  | "industryDetail"
   | "contactOwner";
 
 const HEADER_ALIASES: Record<string, ImportField> = {
@@ -25,10 +27,11 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   workemail: "email",
   work_email: "email",
   // phone
-  phone: "phone",
-  phonenumber: "phone",
-  mobile: "phone",
-  cell: "phone",
+  phone: "workPhone",
+  workphone: "workPhone",
+  phonenumber: "workPhone",
+  mobile: "workPhone",
+  cell: "workPhone",
   // linkedin
   linkedin: "linkedinUrl",
   linkedinurl: "linkedinUrl",
@@ -42,6 +45,10 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   industry: "industry",
   vertical: "industry",
   sector: "industry",
+  // industry detail
+  industrydetail: "industryDetail",
+  niche: "industryDetail",
+  subvertical: "industryDetail",
   // contact owner
   contactowner: "contactOwner",
   owner: "contactOwner",
@@ -77,34 +84,87 @@ export function splitFullName(fullName: string): { firstName: string; lastName: 
 }
 
 const INDUSTRY_TEXT_MAP: Record<string, Industry> = {
-  ifm: "IFM",
-  "integrated facility management": "IFM",
-  "facility management": "FACILITY_MANAGEMENT",
-  "facilities management": "FACILITY_MANAGEMENT",
-  "facility services": "FACILITY_SERVICES",
-  "facility maintenance": "FACILITY_MAINTENANCE",
-  "facilities maintenance": "FACILITY_MAINTENANCE",
-  janitorial: "JANITORIAL_CLEANING",
-  cleaning: "JANITORIAL_CLEANING",
-  "janitorial/cleaning": "JANITORIAL_CLEANING",
-  hvac: "HVAC",
-  "fire protection": "FIRE_PROTECTION",
+  "facility maintenance": "FACILITY_MAINTENANCE_COMPANIES",
+  "facility maintenance companies": "FACILITY_MAINTENANCE_COMPANIES",
+  "facilities maintenance": "FACILITY_MAINTENANCE_COMPANIES",
+  ifm: "INTEGRATED_FACILITY_MANAGEMENT",
+  "integrated facility management": "INTEGRATED_FACILITY_MANAGEMENT",
+  "facility management": "INTEGRATED_FACILITY_MANAGEMENT",
+  "facilities management": "INTEGRATED_FACILITY_MANAGEMENT",
+  restaurant: "MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS",
+  "restaurant group": "MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS",
+  franchise: "MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS",
+  "multi-unit restaurant": "MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS",
+  logistics: "TRANSPORTATION_LOGISTICS",
+  transportation: "TRANSPORTATION_LOGISTICS",
+  "transportation & logistics": "TRANSPORTATION_LOGISTICS",
+  construction: "CONSTRUCTION_COMPANIES",
+  "construction companies": "CONSTRUCTION_COMPANIES",
+  healthcare: "HEALTHCARE_FACILITIES",
+  "healthcare facilities": "HEALTHCARE_FACILITIES",
 };
 
 export function detectIndustry(value: string): Industry {
   const key = value.trim().toLowerCase();
-  return INDUSTRY_TEXT_MAP[key] ?? "OTHER";
+  return INDUSTRY_TEXT_MAP[key] ?? "FACILITY_MAINTENANCE_COMPANIES";
+}
+
+const INDUSTRY_DETAIL_KEYWORDS: Array<[RegExp, IndustryDetail]> = [
+  [/hvac/i, "HVAC"],
+  [/electrical/i, "ELECTRICAL"],
+  [/plumbing/i, "PLUMBING"],
+  [/roofing/i, "ROOFING"],
+  [/handyman/i, "HANDYMAN"],
+  [/janitorial|cleaning|cleanroom/i, "JANITORIAL"],
+  [/landscap/i, "LANDSCAPING"],
+  [/pest/i, "PEST_CONTROL"],
+  [/security/i, "SECURITY"],
+  [/office|corporate campus/i, "COMMERCIAL_OFFICES"],
+  [/manufactur|industrial/i, "INDUSTRIAL_MANUFACTURING"],
+  [/retail/i, "RETAIL_CHAINS"],
+  [/school|campus|educat/i, "EDUCATIONAL_CAMPUSES"],
+  [/fast food|qsr/i, "QSR_FAST_FOOD"],
+  [/dining|restaurant/i, "CASUAL_DINING"],
+  [/freight|3pl|brokerage/i, "FREIGHT_BROKERAGE_3PL"],
+  [/warehous/i, "WAREHOUSING"],
+  [/delivery/i, "LAST_MILE_DELIVERY"],
+  [/urgent care/i, "URGENT_CARE_CHAINS"],
+  [/hospital/i, "HOSPITALS"],
+  [/clinic/i, "MULTI_SPECIALTY_CLINICS"],
+  [/senior living|assisted living/i, "SENIOR_LIVING_FACILITIES"],
+];
+
+export function detectIndustryDetail(value: string): IndustryDetail | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  for (const [pattern, detail] of INDUSTRY_DETAIL_KEYWORDS) {
+    if (pattern.test(trimmed)) return detail;
+  }
+  return undefined;
+}
+
+const TEAM_MEMBER_NAME_MAP: Record<string, TeamMember> = Object.fromEntries(
+  (Object.entries(TEAM_MEMBER_LABELS) as [TeamMember, string][]).map(([member, label]) => [
+    label.toLowerCase(),
+    member,
+  ])
+);
+
+export function detectContactOwner(value: string): TeamMember | undefined {
+  const key = value.trim().toLowerCase();
+  return TEAM_MEMBER_NAME_MAP[key];
 }
 
 export type MappedImportRow = {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  workPhone: string;
   linkedinUrl: string;
   company: string;
   industry: Industry;
-  contactOwner: string;
+  industryDetail?: IndustryDetail;
+  contactOwner?: TeamMember;
 };
 
 /**
@@ -131,11 +191,10 @@ export function mapCsvRows(headers: string[], rows: string[][]): MappedImportRow
         firstName: "",
         lastName: "",
         email: "",
-        phone: "",
+        workPhone: "",
         linkedinUrl: "",
         company: "",
-        industry: "OTHER",
-        contactOwner: "",
+        industry: "FACILITY_MAINTENANCE_COMPANIES",
       };
 
       if (fullNameColumn !== null) {
@@ -149,6 +208,10 @@ export function mapCsvRows(headers: string[], rows: string[][]): MappedImportRow
         if (!value) continue;
         if (field === "industry") {
           result.industry = detectIndustry(value);
+        } else if (field === "industryDetail") {
+          result.industryDetail = detectIndustryDetail(value);
+        } else if (field === "contactOwner") {
+          result.contactOwner = detectContactOwner(value);
         } else {
           result[field] = value;
         }

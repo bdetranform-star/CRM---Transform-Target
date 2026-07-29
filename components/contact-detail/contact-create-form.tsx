@@ -8,7 +8,6 @@ import { z } from "zod";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,11 +18,23 @@ import {
 } from "@/components/ui/select";
 import {
   leadStatusEnum,
+  lifecycleStageEnum,
   industryEnum,
+  industryDetailEnum,
   leadSourceEnum,
+  leadSourceCapturedEnum,
+  teamMemberEnum,
 } from "@/lib/validations";
 import { createContact, getContactOwnerPool } from "@/app/actions/contacts";
-import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG, LEAD_SOURCE_LABELS } from "@/lib/status-config";
+import {
+  INDUSTRY_LABELS,
+  INDUSTRY_DETAIL_LABELS,
+  LEAD_STATUS_CONFIG,
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_CAPTURED_LABELS,
+  LIFECYCLE_STAGE_LABELS,
+  TEAM_MEMBER_LABELS,
+} from "@/lib/status-config";
 
 // Transform-free schema matching what the inputs below actually produce —
 // same split rationale as ContactEditForm; the server action re-validates
@@ -31,15 +42,26 @@ import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG, LEAD_SOURCE_LABELS } from "@/lib/s
 const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string(),
+  jobTitle: z.string(),
   email: z.string().email("Enter a valid email"),
-  phone: z.string(),
+  workPhone: z.string(),
+  cellPhone: z.string(),
   linkedinUrl: z.string(),
   company: z.string(),
-  contactOwner: z.string().min(1, "Contact owner is required"),
+  websiteUrl: z.string(),
+  numberOfEmployees: z.string(),
+  streetAddress: z.string(),
+  city: z.string(),
+  state: z.string(),
+  country: z.string(),
+  zipCode: z.string(),
+  contactOwner: teamMemberEnum,
+  lifecycleStage: lifecycleStageEnum,
   leadStatus: leadStatusEnum,
   industry: industryEnum,
-  industryDetail: z.string(),
+  industryDetail: z.union([industryDetailEnum, z.literal("")]),
   leadSource: leadSourceEnum,
+  leadSourceCaptured: z.union([leadSourceCapturedEnum, z.literal("")]),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -67,15 +89,26 @@ export function ContactCreateForm({
     defaultValues: {
       firstName: "",
       lastName: "",
+      jobTitle: "",
       email: "",
-      phone: "",
+      workPhone: "",
+      cellPhone: "",
       linkedinUrl: "",
       company: "",
-      contactOwner: "",
-      leadStatus: "OPEN_PROSPECT",
-      industry: "OTHER",
+      websiteUrl: "",
+      numberOfEmployees: "",
+      streetAddress: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: "",
+      contactOwner: "" as never,
+      lifecycleStage: "LEAD",
+      leadStatus: "NEW_LEAD",
+      industry: "FACILITY_MAINTENANCE_COMPANIES",
       industryDetail: "",
       leadSource: "OTHER",
+      leadSourceCaptured: "",
     },
   });
 
@@ -90,8 +123,11 @@ export function ContactCreateForm({
   }
 
   const leadStatus = watch("leadStatus");
+  const lifecycleStage = watch("lifecycleStage");
   const industry = watch("industry");
+  const industryDetail = watch("industryDetail");
   const leadSource = watch("leadSource");
+  const leadSourceCaptured = watch("leadSourceCaptured");
   const contactOwner = watch("contactOwner");
 
   return (
@@ -111,20 +147,30 @@ export function ContactCreateForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Email</Label>
+        <Label>Job title</Label>
+        <Input {...register("jobTitle")} />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Email address</Label>
         <Input type="email" {...register("email")} />
         {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label>Phone</Label>
-          <Input {...register("phone")} />
+          <Label>Work phone number</Label>
+          <Input {...register("workPhone")} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Company</Label>
-          <Input {...register("company")} />
+          <Label>Cell phone number</Label>
+          <Input {...register("cellPhone")} />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Company name</Label>
+        <Input {...register("company")} />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -132,26 +178,78 @@ export function ContactCreateForm({
         <Input {...register("linkedinUrl")} placeholder="https://www.linkedin.com/in/..." />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>Website URL</Label>
+          <Input {...register("websiteUrl")} placeholder="https://..." />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Number of employees</Label>
+          <Input type="number" min={0} {...register("numberOfEmployees")} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>Street address</Label>
+          <Input {...register("streetAddress")} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>City</Label>
+          <Input {...register("city")} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>State</Label>
+          <Input {...register("state")} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Country</Label>
+          <Input {...register("country")} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Zip code</Label>
+          <Input {...register("zipCode")} />
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <Label>Contact owner</Label>
-        <Select value={contactOwner} onValueChange={(v) => setValue("contactOwner", v)}>
+        <Select value={contactOwner} onValueChange={(v) => setValue("contactOwner", v as FormValues["contactOwner"])}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Choose an owner" />
           </SelectTrigger>
-          <SelectContent className="max-h-72">
+          <SelectContent>
             {owners.map((owner) => (
               <SelectItem key={owner} value={owner}>
-                {owner}
+                {TEAM_MEMBER_LABELS[owner as keyof typeof TEAM_MEMBER_LABELS]}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors.contactOwner && (
-          <p className="text-xs text-destructive">{errors.contactOwner.message}</p>
+          <p className="text-xs text-destructive">Contact owner is required</p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>Lifecycle stage</Label>
+          <Select value={lifecycleStage} onValueChange={(v) => setValue("lifecycleStage", v as FormValues["lifecycleStage"])}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(LIFECYCLE_STAGE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex flex-col gap-1.5">
           <Label>Lead status</Label>
           <Select value={leadStatus} onValueChange={(v) => setValue("leadStatus", v as FormValues["leadStatus"])}>
@@ -167,6 +265,45 @@ export function ContactCreateForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>Industry</Label>
+          <Select value={industry} onValueChange={(v) => setValue("industry", v as FormValues["industry"])}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(INDUSTRY_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Industry detail</Label>
+          <Select
+            value={industryDetail || undefined}
+            onValueChange={(v) => setValue("industryDetail", v as FormValues["industryDetail"])}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {Object.entries(INDUSTRY_DETAIL_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label>Lead source</Label>
           <Select value={leadSource} onValueChange={(v) => setValue("leadSource", v as FormValues["leadSource"])}>
@@ -182,27 +319,24 @@ export function ContactCreateForm({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label>Industry</Label>
-        <Select value={industry} onValueChange={(v) => setValue("industry", v as FormValues["industry"])}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(INDUSTRY_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label>Industry detail</Label>
-        <Textarea {...register("industryDetail")} rows={2} placeholder="Free-text niche notes" />
+        <div className="flex flex-col gap-1.5">
+          <Label>Lead source captured</Label>
+          <Select
+            value={leadSourceCaptured || undefined}
+            onValueChange={(v) => setValue("leadSourceCaptured", v as FormValues["leadSourceCaptured"])}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(LEAD_SOURCE_CAPTURED_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">

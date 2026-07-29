@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       firstName: row.firstName,
       lastName: row.lastName || null,
       email: row.email,
-      phone: row.phone || null,
+      workPhone: row.workPhone || null,
       linkedinUrl: row.linkedinUrl || null,
       company: row.company || null,
       contactOwner: row.contactOwner || defaultOwner,

@@ -7,7 +7,14 @@ import { format } from "date-fns";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/status-pill";
-import { INDUSTRY_LABELS, LEAD_SOURCE_LABELS } from "@/lib/status-config";
+import {
+  INDUSTRY_LABELS,
+  INDUSTRY_DETAIL_LABELS,
+  LEAD_SOURCE_LABELS,
+  LEAD_SOURCE_CAPTURED_LABELS,
+  LIFECYCLE_STAGE_LABELS,
+  TEAM_MEMBER_LABELS,
+} from "@/lib/status-config";
 
 export type ContactRow = Omit<Contact, never> & {
   callCount: number;
@@ -15,6 +22,10 @@ export type ContactRow = Omit<Contact, never> & {
 };
 
 const columnHelper = createColumnHelper<ContactRow>();
+
+function formatDate(value: Date | null) {
+  return value ? format(value, "MMM d, yyyy") : "—";
+}
 
 export const contactColumns = [
   columnHelper.display({
@@ -47,19 +58,32 @@ export const contactColumns = [
     header: "Last Name",
     cell: (info) => info.getValue() ?? "",
   }),
-  columnHelper.accessor("email", {
-    header: "Email",
+  columnHelper.accessor("jobTitle", {
+    header: "Job Title",
+    cell: (info) => info.getValue() ?? "—",
   }),
-  columnHelper.accessor("phone", {
-    header: "Phone",
+  columnHelper.accessor("email", {
+    header: "Email Address",
+  }),
+  columnHelper.accessor("workPhone", {
+    header: "Work Phone Number",
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("cellPhone", {
+    header: "Cell Phone Number",
     cell: (info) => info.getValue() ?? "—",
   }),
   columnHelper.accessor("company", {
-    header: "Company",
+    header: "Company Name",
     cell: (info) => info.getValue() ?? "—",
   }),
   columnHelper.accessor("contactOwner", {
     header: "Contact Owner",
+    cell: (info) => TEAM_MEMBER_LABELS[info.getValue()],
+  }),
+  columnHelper.accessor("lifecycleStage", {
+    header: "Lifecycle Stage",
+    cell: (info) => LIFECYCLE_STAGE_LABELS[info.getValue()],
   }),
   columnHelper.accessor("leadStatus", {
     header: "Lead Status",
@@ -69,9 +93,39 @@ export const contactColumns = [
     header: "Industry",
     cell: (info) => INDUSTRY_LABELS[info.getValue()],
   }),
+  columnHelper.accessor("industryDetail", {
+    header: "Industry Detail",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? INDUSTRY_DETAIL_LABELS[v] : "—";
+    },
+  }),
   columnHelper.accessor("leadSource", {
     header: "Lead Source",
     cell: (info) => LEAD_SOURCE_LABELS[info.getValue()],
+  }),
+  columnHelper.accessor("leadSourceCaptured", {
+    header: "Lead Source Captured",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? LEAD_SOURCE_CAPTURED_LABELS[v] : "—";
+    },
+  }),
+  columnHelper.accessor("city", {
+    header: "City",
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("state", {
+    header: "State",
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("country", {
+    header: "Country",
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("numberOfEmployees", {
+    header: "# Employees",
+    cell: (info) => info.getValue()?.toLocaleString() ?? "—",
   }),
   columnHelper.accessor("sequenceStep", {
     header: "Sequence Step",
@@ -108,12 +162,20 @@ export const contactColumns = [
         "—"
       ),
   }),
+  columnHelper.accessor("lastContactDate", {
+    header: "Last Contact Date",
+    cell: (info) => formatDate(info.getValue()),
+  }),
+  columnHelper.accessor("lastInterestedReply", {
+    header: "Last Interested Reply",
+    cell: (info) => formatDate(info.getValue()),
+  }),
   columnHelper.accessor("createdAt", {
-    header: "Created",
-    cell: (info) => format(info.getValue(), "MMM d, yyyy"),
+    header: "Created Date",
+    cell: (info) => formatDate(info.getValue()),
   }),
   columnHelper.accessor("updatedAt", {
     header: "Updated",
-    cell: (info) => format(info.getValue(), "MMM d, yyyy"),
+    cell: (info) => formatDate(info.getValue()),
   }),
 ];

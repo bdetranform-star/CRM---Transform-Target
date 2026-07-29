@@ -30,21 +30,27 @@ import {
 } from "@/components/ui/select";
 import { contactColumns, type ContactRow } from "./columns";
 import { BulkActionBar } from "./bulk-action-bar";
+import { SavedViewTabs } from "./saved-view-tabs";
+import { AdvancedFiltersPanel } from "./advanced-filters-panel";
 import {
   ContactDetailPanel,
   NEW_CONTACT_ID,
 } from "@/components/contact-detail/contact-detail-panel";
-import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG } from "@/lib/status-config";
+import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG, TEAM_MEMBER_LABELS } from "@/lib/status-config";
+import type { ContactFilter } from "@/lib/contact-filters";
 import type { getContactsTable } from "@/app/actions/contacts";
+import type { SavedView } from "@/lib/saved-views";
 
 type TableData = Awaited<ReturnType<typeof getContactsTable>>;
 
 export function ContactsTableView({
   initialData,
   owners,
+  viewCounts,
 }: {
   initialData: TableData;
   owners: string[];
+  viewCounts: Record<SavedView, number>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -58,6 +64,17 @@ export function ContactsTableView({
   const sortField = searchParams.get("sort") ?? "updatedAt";
   const sortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
   const sorting: SortingState = [{ id: sortField, desc: sortDir === "desc" }];
+
+  const filters: ContactFilter[] = useMemo(() => {
+    const raw = searchParams.get("filters");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [searchParams]);
 
   function updateParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -109,8 +126,14 @@ export function ContactsTableView({
     window.location.href = `/api/contacts/export${query}`;
   }
 
+  function handleFiltersChange(next: ContactFilter[]) {
+    updateParams({ filters: next.length > 0 ? JSON.stringify(next) : null });
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      <SavedViewTabs viewCounts={viewCounts} />
+
       <div className="flex flex-wrap items-center gap-2">
         <Input
           placeholder="Search name, company, email..."
@@ -161,7 +184,7 @@ export function ContactsTableView({
             <SelectItem value="ALL">All owners</SelectItem>
             {owners.map((owner) => (
               <SelectItem key={owner} value={owner}>
-                {owner}
+                {TEAM_MEMBER_LABELS[owner as keyof typeof TEAM_MEMBER_LABELS]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -174,6 +197,10 @@ export function ContactsTableView({
           <Plus className="size-4" />
           New Contact
         </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <AdvancedFiltersPanel filters={filters} onChange={handleFiltersChange} />
       </div>
 
       {selectedIds.length > 0 && (

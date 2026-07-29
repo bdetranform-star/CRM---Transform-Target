@@ -110,7 +110,7 @@ export function CallQueueView({ initialQueue }: { initialQueue: QueueContact[] }
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Phone</p>
-                <p className="font-medium">{current.phone ?? "—"}</p>
+                <p className="font-medium">{current.workPhone ?? "—"}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Industry</p>
