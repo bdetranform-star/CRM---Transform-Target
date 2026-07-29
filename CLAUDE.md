@@ -104,7 +104,13 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
 - **Contact detail panel** (`components/contact-detail/`) — a `Sheet`
   (slide-over from the right, not a centered dialog) that lazy-fetches the
   full contact + touch history when opened. Reused by the Board, Table, and
-  anywhere else a contact needs inspecting.
+  anywhere else a contact needs inspecting. Also doubles as the "new
+  contact" form: passing the `NEW_CONTACT_ID` sentinel as `contactId`
+  renders `ContactCreateForm` instead of fetching, skipping the quick
+  actions/tabs/touch-history that don't make sense before the contact
+  exists. The "+ New Contact" buttons on the Board and Contacts table both
+  open the panel this way; on success the panel switches itself to normal
+  view mode for the newly created contact via `onCreated`.
 - **Call Queue** (`components/call-queue/`) — pulls contacts at
   `sequenceStep === 2`, walks through them one at a time client-side (no
   server round trip to advance/skip). Logging a call with outcome
@@ -144,6 +150,10 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   `skipDuplicates` (this predates the Postgres switch, when the app ran on
   SQLite, which doesn't support that option — it still works fine on
   Postgres, just could be simplified to `skipDuplicates: true` if desired).
+  The "default contact owner" dropdown is populated by `getContactOwnerPool()`
+  (`app/actions/contacts.ts`), not `getContactOwners()` — see the
+  `lib/contact-owners.ts` note under "Data model" below for why that
+  distinction matters.
 - **Instantly.ai webhook** (`app/api/webhooks/instantly/route.ts`,
   `lib/instantly.ts`) — verifies a shared secret
   (`INSTANTLY_WEBHOOK_SECRET`, checked against the `x-instantly-secret`
@@ -161,6 +171,17 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   - `contactOwner: String` — free-text email, drawn from the 100 seeded
     placeholder addresses; intentionally *not* a `User` foreign key, since
     the spec's 100 "sending accounts" are outreach mailboxes, not CRM logins.
+    The 100-owner pool itself isn't a DB table — it's generated
+    deterministically by `buildSeedOwners()`/`SEEDED_CONTACT_OWNER_POOL` in
+    `lib/contact-owners.ts`, imported by both `prisma/seed.ts` and
+    `getContactOwnerPool()`. This matters because only a handful of those
+    100 emails ever actually get attached to a `Contact` row (the seed only
+    assigns owners to its 6 sample leads); anything that needs to *offer the
+    full pool as options* (import's default-owner picker, the create-contact
+    form) must call `getContactOwnerPool()`, not `getContactOwners()` (which
+    does `DISTINCT contactOwner FROM Contact` and is correct only for the
+    Contacts table's owner *filter*, where showing an owner with zero
+    contacts would be noise).
   - `leadStatus` — 8-value enum, `OPEN_PROSPECT` default; this is the Board's
     column set, in `LEAD_STATUS_ORDER` (`lib/status-config.ts`).
   - `sequenceStep: Int` — position in the 4-channel cadence: `0` = due for

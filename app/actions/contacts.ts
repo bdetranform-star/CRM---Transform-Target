@@ -15,6 +15,7 @@ import {
   industryEnum,
 } from "@/lib/validations";
 import { LEAD_STATUS_ORDER } from "@/lib/status-config";
+import { SEEDED_CONTACT_OWNER_POOL } from "@/lib/contact-owners";
 
 export async function getBoardContacts() {
   await requireAuth();
@@ -136,6 +137,7 @@ export async function getContactsTable(params: ContactsTableParams) {
   };
 }
 
+/** Owners currently assigned to at least one contact — used for the Contacts table filter. */
 export async function getContactOwners() {
   await requireAuth();
   const owners = await prisma.contact.findMany({
@@ -144,6 +146,24 @@ export async function getContactOwners() {
     orderBy: { contactOwner: "asc" },
   });
   return owners.map((o) => o.contactOwner);
+}
+
+/**
+ * The full pool of 100 seeded "sending account" owner emails, plus any
+ * additional owner values already in use (e.g. from a CSV import with a
+ * custom owner column). Unlike getContactOwners(), this doesn't depend on
+ * any contact actually being assigned that owner yet — it's the selectable
+ * list for assigning an owner to a *new* contact (manual create or import),
+ * so it's populated even when the Contact table is empty.
+ */
+export async function getContactOwnerPool() {
+  await requireAuth();
+  const inUse = await prisma.contact.findMany({
+    distinct: ["contactOwner"],
+    select: { contactOwner: true },
+  });
+  const merged = new Set([...SEEDED_CONTACT_OWNER_POOL, ...inUse.map((o) => o.contactOwner)]);
+  return Array.from(merged).sort();
 }
 
 export async function getContactDetail(id: string) {

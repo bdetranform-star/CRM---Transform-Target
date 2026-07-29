@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -11,14 +12,19 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateContactStatus } from "@/app/actions/contacts";
 import { LEAD_STATUS_ORDER, LEAD_STATUS_CONFIG } from "@/lib/status-config";
 import type { LeadStatus } from "@prisma/client";
+import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { BoardCard } from "./board-card";
-import { ContactDetailPanel } from "@/components/contact-detail/contact-detail-panel";
+import {
+  ContactDetailPanel,
+  NEW_CONTACT_ID,
+} from "@/components/contact-detail/contact-detail-panel";
 
 export type BoardContact = {
   id: string;
@@ -37,6 +43,7 @@ export function BoardView({
 }: {
   initialContacts: Record<string, BoardContact[]>;
 }) {
+  const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeContact, setActiveContact] = useState<BoardContact | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -94,14 +101,20 @@ export function BoardView({
 
   return (
     <>
-      <div className="h-full overflow-x-auto p-6">
+      <div className="flex h-full flex-col overflow-x-auto p-6">
+        <div className="mb-4 flex justify-end">
+          <Button size="sm" onClick={() => setSelectedContactId(NEW_CONTACT_ID)}>
+            <Plus className="size-4" />
+            New Contact
+          </Button>
+        </div>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex h-full gap-4">
+          <div className="flex flex-1 gap-4">
             {LEAD_STATUS_ORDER.map((status) => (
               <BoardColumn
                 key={status}
@@ -120,6 +133,10 @@ export function BoardView({
       <ContactDetailPanel
         contactId={selectedContactId}
         onClose={() => setSelectedContactId(null)}
+        onCreated={(id) => {
+          setSelectedContactId(id);
+          router.refresh();
+        }}
       />
     </>
   );

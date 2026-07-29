@@ -9,7 +9,7 @@ import {
   type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, Plus } from "lucide-react";
 
 import {
   Table,
@@ -30,7 +30,10 @@ import {
 } from "@/components/ui/select";
 import { contactColumns, type ContactRow } from "./columns";
 import { BulkActionBar } from "./bulk-action-bar";
-import { ContactDetailPanel } from "@/components/contact-detail/contact-detail-panel";
+import {
+  ContactDetailPanel,
+  NEW_CONTACT_ID,
+} from "@/components/contact-detail/contact-detail-panel";
 import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG } from "@/lib/status-config";
 import type { getContactsTable } from "@/app/actions/contacts";
 
@@ -167,6 +170,10 @@ export function ContactsTableView({
           <Download className="size-4" />
           Export {selectedIds.length > 0 ? `Selected (${selectedIds.length})` : "All"}
         </Button>
+        <Button size="sm" onClick={() => setSelectedContactId(NEW_CONTACT_ID)}>
+          <Plus className="size-4" />
+          New Contact
+        </Button>
       </div>
 
       {selectedIds.length > 0 && (
@@ -264,6 +271,10 @@ export function ContactsTableView({
         contactId={selectedContactId}
         onClose={() => {
           setSelectedContactId(null);
+          router.refresh();
+        }}
+        onCreated={(id) => {
+          setSelectedContactId(id);
           router.refresh();
         }}
       />

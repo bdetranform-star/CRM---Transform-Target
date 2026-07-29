@@ -1,8 +1,8 @@
-import { getContactOwners } from "@/app/actions/contacts";
+import { getContactOwnerPool } from "@/app/actions/contacts";
 import { ImportExportView } from "@/components/import-export/import-export-view";
 
 export default async function ImportExportPage() {
-  const owners = await getContactOwners();
+  const owners = await getContactOwnerPool();
 
   return (
     <div className="flex h-full flex-col">
