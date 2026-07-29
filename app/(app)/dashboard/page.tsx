@@ -2,39 +2,110 @@ import { getSequenceCounts } from "@/app/actions/touches";
 import {
   getContactsByStatus,
   getContactsByIndustry,
-  getContactsCreatedPerWeek,
-  getTouchesPerChannelThisWeek,
+  getNewContactsCreatedSummary,
+  getContactSourcesBreakdown,
+  getContactsAddedOverTime,
+  getDealsCreatedOverTime,
+  getDealsByStage,
+  getActivityTypeBreakdown,
+  getTeamActivitySummary,
+  getOpenTasksSummary,
+  getTaskStatusBreakdown,
+  type DashboardRange,
 } from "@/app/actions/dashboard";
+import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
+import { StatTile } from "@/components/dashboard/stat-tile";
 import { SequenceTrackerWidget } from "@/components/dashboard/sequence-tracker-widget";
 import { StatusBarChart } from "@/components/dashboard/status-bar-chart";
 import { IndustryPieChart } from "@/components/dashboard/industry-pie-chart";
-import { CreatedPerWeekChart } from "@/components/dashboard/created-per-week-chart";
-import { TouchesPerChannelChart } from "@/components/dashboard/touches-per-channel-chart";
+import { DailyLineChart } from "@/components/dashboard/daily-line-chart";
+import { ActivityTypeChart } from "@/components/dashboard/activity-type-chart";
+import { ContactSourcesChart } from "@/components/dashboard/contact-sources-chart";
+import { DealsByStageChart } from "@/components/dashboard/deals-by-stage-chart";
+import { TeamActivityChart } from "@/components/dashboard/team-activity-chart";
+import { TaskStatusChart } from "@/components/dashboard/task-status-chart";
+import { OpenTasksSummary } from "@/components/dashboard/open-tasks-summary";
 
-export default async function DashboardPage() {
-  const [sequenceCounts, byStatus, byIndustry, perWeek, perChannel] = await Promise.all([
+const VALID_RANGES: DashboardRange[] = ["7", "30", "90", "365", "all"];
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const range: DashboardRange = VALID_RANGES.includes(params.range as DashboardRange)
+    ? (params.range as DashboardRange)
+    : "30";
+  const owner = params.owner;
+
+  const [
+    sequenceCounts,
+    byStatus,
+    byIndustry,
+    newContactsSummary,
+    contactSources,
+    contactsOverTime,
+    dealsOverTime,
+    dealsByStage,
+    activityBreakdown,
+    teamActivity,
+    openTasks,
+    taskStatus,
+  ] = await Promise.all([
     getSequenceCounts(),
     getContactsByStatus(),
     getContactsByIndustry(),
-    getContactsCreatedPerWeek(),
-    getTouchesPerChannelThisWeek(),
+    getNewContactsCreatedSummary(range, owner),
+    getContactSourcesBreakdown(range, owner),
+    getContactsAddedOverTime(range, owner),
+    getDealsCreatedOverTime(range),
+    getDealsByStage(),
+    getActivityTypeBreakdown(range, owner),
+    getTeamActivitySummary(range),
+    getOpenTasksSummary(),
+    getTaskStatusBreakdown(),
   ]);
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold">Dashboard</h1>
+        <h1 className="text-lg font-semibold">Dashboards</h1>
         <p className="text-sm text-muted-foreground">
           Pipeline health and outreach activity at a glance.
         </p>
       </div>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+        <DashboardFilters />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile
+            title="New contacts created"
+            value={newContactsSummary.current}
+            changePct={newContactsSummary.changePct}
+            subLabel={
+              newContactsSummary.previous !== null
+                ? `${newContactsSummary.previous} in previous period`
+                : undefined
+            }
+          />
+          <OpenTasksSummary open={openTasks.open} overdue={openTasks.overdue} />
+        </div>
+
         <SequenceTrackerWidget counts={sequenceCounts} />
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <StatusBarChart data={byStatus} />
           <IndustryPieChart data={byIndustry} />
-          <CreatedPerWeekChart data={perWeek} />
-          <TouchesPerChannelChart data={perChannel} />
+          <ContactSourcesChart data={contactSources} />
+          <DailyLineChart title="Contacts added over time" data={contactsOverTime} />
+          <DailyLineChart title="Deals created over time" data={dealsOverTime} />
+          <DealsByStageChart data={dealsByStage} />
+          <ActivityTypeChart data={activityBreakdown} />
+          <TeamActivityChart data={teamActivity} />
+          <TaskStatusChart data={taskStatus} />
         </div>
       </div>
     </div>
