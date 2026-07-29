@@ -18,6 +18,25 @@ function revalidateContactViews() {
   revalidatePath("/calls");
   revalidatePath("/linkedin");
   revalidatePath("/dashboard");
+  revalidatePath("/activity-feed");
+}
+
+/**
+ * Every logged Touch, on any channel, bumps lastContactDate. A Touch with a
+ * positive/interested outcome (CONNECTED or REPLIED) also bumps
+ * lastInterestedReply — this is the single place both fields are set, so
+ * every touch-logging action below calls it right after creating its Touch.
+ */
+async function recordContactActivity(contactId: string, outcome?: string | null) {
+  const now = new Date();
+  const isInterested = outcome === "CONNECTED" || outcome === "REPLIED";
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: {
+      lastContactDate: now,
+      ...(isInterested ? { lastInterestedReply: now } : {}),
+    },
+  });
 }
 
 export async function logCallTouch(input: unknown) {
@@ -40,6 +59,7 @@ export async function logCallTouch(input: unknown) {
       data: { leadStatus: "CONNECTED", sequenceStep: 3 },
     });
   }
+  await recordContactActivity(contactId, outcome);
 
   revalidateContactViews();
   return touch;
@@ -64,6 +84,7 @@ export async function logLinkedinTouch(input: unknown) {
       data: { sequenceStep: 2 },
     });
   }
+  await recordContactActivity(contactId, outcome);
 
   revalidateContactViews();
   return touch;
@@ -74,7 +95,7 @@ export async function logLinkedinTouch(input: unknown) {
  * swap this body for a Twilio `messages.create(...)` call later without
  * touching any caller — the Touch record and validation stay the same.
  */
-async function sendSmsViaProvider(_contact: { phone: string | null }, _body: string) {
+async function sendSmsViaProvider(_contact: { workPhone: string | null }, _body: string) {
   // Stretch goal: integrate Twilio here. For now this just simulates a send.
   return { simulated: true };
 }
@@ -101,6 +122,7 @@ export async function sendSms(input: unknown) {
   });
 
   void templateId;
+  await recordContactActivity(contactId, "SENT");
   revalidateContactViews();
   return touch;
 }
@@ -134,6 +156,7 @@ export async function markSmsReplied(input: unknown) {
   if (optOut) {
     await prisma.contact.update({ where: { id: contactId }, data: { smsOptOut: true } });
   }
+  await recordContactActivity(contactId, "REPLIED");
 
   revalidateContactViews();
 }
@@ -145,6 +168,7 @@ export async function addNoteTouch(input: unknown) {
   const touch = await prisma.touch.create({
     data: { contactId, channel: "NOTE", direction: "OUTBOUND", body },
   });
+  await recordContactActivity(contactId);
 
   revalidateContactViews();
   return touch;

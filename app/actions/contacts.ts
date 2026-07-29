@@ -13,9 +13,12 @@ import {
   bulkDeleteSchema,
   leadStatusEnum,
   industryEnum,
+  teamMemberEnum,
 } from "@/lib/validations";
 import { LEAD_STATUS_ORDER } from "@/lib/status-config";
-import { SEEDED_CONTACT_OWNER_POOL } from "@/lib/contact-owners";
+import { TEAM_MEMBERS } from "@/lib/contact-owners";
+import { buildWhereFromFilters, type ContactFilter } from "@/lib/contact-filters";
+import { SAVED_VIEWS } from "@/lib/saved-views";
 
 export async function getBoardContacts() {
   await requireAuth();
@@ -46,6 +49,19 @@ export async function getBoardContacts() {
   return grouped;
 }
 
+function savedViewWhere(view?: string): Prisma.ContactWhereInput {
+  switch (view) {
+    case SAVED_VIEWS.OPEN_OPPORTUNITIES:
+      return { leadStatus: "OPEN_OPPORTUNITIES" };
+    case SAVED_VIEWS.NEED_FOLLOW_UP:
+      return { leadStatus: { in: ["OPEN_PROSPECT", "IN_PROCESS", "EMAIL_SENT"] } };
+    case SAVED_VIEWS.INITIAL_CONVERSATION:
+      return { leadStatus: "CONNECTED" };
+    default:
+      return {};
+  }
+}
+
 export type ContactsTableParams = {
   page: number;
   pageSize: number;
@@ -53,6 +69,8 @@ export type ContactsTableParams = {
   industry?: string;
   contactOwner?: string;
   leadStatus?: string;
+  savedView?: string;
+  filters?: ContactFilter[];
   sortField?: string;
   sortDirection?: "asc" | "desc";
 };
@@ -64,11 +82,13 @@ const SORTABLE_FIELDS = new Set([
   "company",
   "contactOwner",
   "leadStatus",
+  "lifecycleStage",
   "industry",
   "leadSource",
   "sequenceStep",
   "createdAt",
   "updatedAt",
+  "lastContactDate",
 ]);
 
 export async function getContactsTable(params: ContactsTableParams) {
@@ -77,7 +97,7 @@ export async function getContactsTable(params: ContactsTableParams) {
   const page = Math.max(1, params.page);
   const pageSize = Math.min(200, Math.max(1, params.pageSize));
 
-  const where: Prisma.ContactWhereInput = {};
+  const where: Prisma.ContactWhereInput = { ...savedViewWhere(params.savedView) };
 
   if (params.search) {
     where.OR = [
@@ -99,7 +119,12 @@ export async function getContactsTable(params: ContactsTableParams) {
   }
 
   if (params.contactOwner) {
-    where.contactOwner = params.contactOwner;
+    const parsedOwner = teamMemberEnum.safeParse(params.contactOwner);
+    if (parsedOwner.success) where.contactOwner = parsedOwner.data;
+  }
+
+  if (params.filters?.length) {
+    Object.assign(where, buildWhereFromFilters(params.filters));
   }
 
   const sortField =
@@ -137,6 +162,23 @@ export async function getContactsTable(params: ContactsTableParams) {
   };
 }
 
+/** Counts for each saved-view tab, shown live on the tab itself. */
+export async function getSavedViewCounts() {
+  await requireAuth();
+  const [all, openOpportunities, needFollowUp, initialConversation] = await Promise.all([
+    prisma.contact.count(),
+    prisma.contact.count({ where: savedViewWhere(SAVED_VIEWS.OPEN_OPPORTUNITIES) }),
+    prisma.contact.count({ where: savedViewWhere(SAVED_VIEWS.NEED_FOLLOW_UP) }),
+    prisma.contact.count({ where: savedViewWhere(SAVED_VIEWS.INITIAL_CONVERSATION) }),
+  ]);
+  return {
+    [SAVED_VIEWS.ALL]: all,
+    [SAVED_VIEWS.OPEN_OPPORTUNITIES]: openOpportunities,
+    [SAVED_VIEWS.NEED_FOLLOW_UP]: needFollowUp,
+    [SAVED_VIEWS.INITIAL_CONVERSATION]: initialConversation,
+  };
+}
+
 /** Owners currently assigned to at least one contact — used for the Contacts table filter. */
 export async function getContactOwners() {
   await requireAuth();
@@ -149,21 +191,15 @@ export async function getContactOwners() {
 }
 
 /**
- * The full pool of 100 seeded "sending account" owner emails, plus any
- * additional owner values already in use (e.g. from a CSV import with a
- * custom owner column). Unlike getContactOwners(), this doesn't depend on
- * any contact actually being assigned that owner yet — it's the selectable
- * list for assigning an owner to a *new* contact (manual create or import),
- * so it's populated even when the Contact table is empty.
+ * The full pool of selectable contact owners (the 5 named team members).
+ * Unlike getContactOwners(), this doesn't depend on any contact actually
+ * being assigned that owner yet — it's the list for assigning an owner to a
+ * *new* contact (manual create or import), so it's populated even when the
+ * Contact table is empty.
  */
 export async function getContactOwnerPool() {
   await requireAuth();
-  const inUse = await prisma.contact.findMany({
-    distinct: ["contactOwner"],
-    select: { contactOwner: true },
-  });
-  const merged = new Set([...SEEDED_CONTACT_OWNER_POOL, ...inUse.map((o) => o.contactOwner)]);
-  return Array.from(merged).sort();
+  return TEAM_MEMBERS;
 }
 
 export async function getContactDetail(id: string) {
@@ -172,6 +208,8 @@ export async function getContactDetail(id: string) {
     where: { id },
     include: {
       touches: { orderBy: { createdAt: "desc" } },
+      deals: { orderBy: { createdAt: "desc" } },
+      tasks: { orderBy: { dueDate: "asc" } },
     },
   });
 }
