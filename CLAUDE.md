@@ -1,7 +1,11 @@
 # Transform Targets CRM
 
 A cold-outreach CRM for the Facility Maintenance / IFM industry, tracking leads
-across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
+across four channels — Email, LinkedIn, Cold Calling, and SMS/Text. The
+information architecture (navigation, Contact properties, saved views,
+dashboards) is modeled on HubSpot's CRM, upgraded from an earlier simpler
+version — see "Data model", "Migration notes", and "Key modules" below for
+what changed and why.
 
 ## Tech stack
 
@@ -17,6 +21,8 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
 - **react-hook-form + zod** — every form and every mutation's server-side validation
 - **papaparse** — CSV import/export
 - **Recharts** — the reporting dashboard
+- **date-fns** — date-range math for the dashboard and relative timestamps
+  on the Activity Feed
 
 ## Architecture
 
@@ -27,14 +33,26 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
   first admin login (email + password) when the `User` table is empty. See
   "Data layer" below for how reuse is prevented.
 - `app/(app)/` — route group for everything behind auth, sharing
-  `app/(app)/layout.tsx` (navy `Sidebar` + `Topbar` shell). Pages:
-  - `/` — Board (Kanban) view, the default view
-  - `/contacts` — Table view
-  - `/calls` — Call Queue (cold calling module)
-  - `/linkedin` — LinkedIn Tasks
-  - `/sms-templates` — SMS template manager
-  - `/dashboard` — reporting dashboard + sequence tracker widget
-  - `/import-export` — CSV import/export
+  `app/(app)/layout.tsx` (navy `Sidebar` + `Topbar` shell). The sidebar's
+  primary nav, top to bottom (`components/sidebar.tsx`'s `NAV_ITEMS`),
+  mirrors HubSpot's own top-to-bottom order:
+  - `/` — **Home**: Board (Kanban) view, the default view
+  - `/contacts` — **Contacts**: Table view with saved-view tabs + advanced filters
+  - `/companies` — **Companies**: read-only rollup derived from `Contact.company`
+  - `/deals` — **Deals**
+  - `/tasks` — **Tasks**
+  - `/activity-feed` — **Activity Feed**: global reverse-chronological Touch feed
+  - `/dashboard` — **Dashboards**
+  - **More** — a collapsible section (`MORE_ITEMS`), not a real page, holding
+    the original four channel-specific modules so they stay reachable without
+    competing with the HubSpot-shaped top-level nav:
+    - `/calls` — Call Queue (cold calling module)
+    - `/linkedin` — LinkedIn Tasks
+    - `/sms-templates` — SMS template manager
+    - `/import-export` — CSV import/export
+
+  "Prospecting Agent" and "Sales Workspace" (present in HubSpot's own nav)
+  are intentionally not included — there's no corresponding feature to link to.
 - `middleware.ts` — protects every route except `/login`, `/setup`,
   `/api/auth/*`, and `/api/webhooks/*` (external callers like Instantly.ai
   can't send a session cookie; that route authenticates itself via a shared
@@ -45,10 +63,12 @@ across four channels — Email, LinkedIn, Cold Calling, and SMS/Text.
 - `lib/prisma.ts` — the singleton `PrismaClient` (standard Next.js dev-mode
   global-cache pattern to survive HMR).
 - `prisma/schema.prisma` — see "Data model" below.
-- `prisma/seed.ts` — seeds 6 realistic sample leads (one per lead status /
-  industry, with matching touch history), 100 placeholder `contactOwner`
-  emails in the pattern `first.last@transformtargets-*.com`, and 3 starter
-  SMS templates. Run with `npx prisma db seed` (wired up via
+- `prisma/seed.ts` — seeds 6 realistic sample leads (spread across
+  lead statuses / industries / lifecycle stages, with matching touch
+  history, `lastContactDate`/`lastInterestedReply` derived from that
+  history, and `contactOwner` round-robined across the 5 `TeamMember`s), one
+  sample `Deal` + `Task` attached to the `CONNECTED` sample contact, and 3
+  starter SMS templates. Run with `npx prisma db seed` (wired up via
   `prisma.config.ts`).
   - By default it also seeds a demo login (`admin@transformtargets.com` /
     `password123`) — fine for local dev, but that hardcoded password
@@ -97,10 +117,33 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
 - **Contacts table** (`components/contacts-table/`) — TanStack Table in
   fully **manual** mode (`manualPagination`/`manualSorting`): sorting, paging,
   and filtering all round-trip through URL search params
-  (`?search=&industry=&status=&owner=&sort=&dir=&page=`) into the
-  `getContactsTable` server action, which does the real work in Prisma
-  (`WHERE`/`ORDER BY`/`skip`/`take`). Row selection is TanStack-table-local
+  (`?search=&industry=&status=&owner=&sort=&dir=&page=&view=&customView=&filters=`)
+  into the `getContactsTable` server action, which does the real work in
+  Prisma (`WHERE`/`ORDER BY`/`skip`/`take`). Row selection is TanStack-table-local
   (per page) and drives the bulk action bar.
+  - **Saved-view tabs** (`saved-view-tabs.tsx`, `?view=`) — preset views
+    defined in `lib/saved-views.ts` (`SAVED_VIEWS`, kept out of
+    `app/actions/contacts.ts` since a `"use server"` file can't export a
+    runtime const — see the "use server" convention note below): "All
+    contacts" (no filter), "Open opportunities"
+    (`leadStatus = OPEN_OPPORTUNITIES`), "Need follow up"
+    (`leadStatus IN (NEW_LEAD, OPEN_PROSPECT, IN_PROCESS, EMAIL_SENT)` — a
+    judgment call for "needs another touch before it's qualified or dead"),
+    and "Initial conversation in progress" (`leadStatus = CONNECTED`). Each
+    tab shows a live count from `getSavedViewCounts()`. Users can also save
+    the *current* filter/search state as a **custom view** via the "+"
+    button; custom views are client-only, persisted to `localStorage`
+    (`lib/saved-views-storage.ts`), not a DB table — this is intentionally
+    lighter-weight than HubSpot's real saved-views feature.
+  - **Advanced filters** (`advanced-filters-panel.tsx`) — a right-side
+    `Sheet` ("All filters" + close, "Add filter" rows, "Clear all"). Field
+    definitions (type, label, operators, enum options where relevant) live in
+    `lib/contact-filters.ts` (`FILTERABLE_FIELDS`); each field's applicable
+    operators depend on its type (`string`: contains/equals; `enum`:
+    equals/one of; `number`: equals/gt/lt/between; `date`:
+    before/after/between). Applied filters render as removable chips above
+    the table and are serialized into the `?filters=` URL param as JSON,
+    turned into a Prisma `WHERE` by `buildWhereFromFilters()`.
 - **Contact detail panel** (`components/contact-detail/`) — a `Sheet`
   (slide-over from the right, not a centered dialog) that lazy-fetches the
   full contact + touch history when opened. Reused by the Board, Table, and
@@ -135,12 +178,65 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
 - **Sequence tracker** — `getSequenceCounts()` (counts contacts at each of
   `sequenceStep` 0–3) backs the dashboard widget; `SequenceProgress` renders
   the same 4-step Email → LinkedIn → Call → SMS indicator on the contact panel.
-- **Dashboard** (`components/dashboard/`) — Recharts bar/pie/line/bar views
-  fed by `app/actions/dashboard.ts`. Uses the CVD-validated 8-hue
-  categorical palette in `lib/chart-palette.ts` for the status/industry
-  charts, the real per-channel brand colors (`lib/channel-config.tsx`) for
-  the channel-activity chart, and a single blue hue for the (single-series)
-  weekly line chart.
+- **Companies** (`app/actions/companies.ts`, `components/companies/`) — not
+  a DB table; `getCompanies()` groups `Contact` rows by `company` and rolls
+  up a contact count plus city/state/country/employee-count *only* when
+  every contact at that company agrees (`rollUp<T>()` helper) — otherwise the
+  rolled-up field shows blank rather than picking one contact's value
+  arbitrarily. Clicking a company links to `/contacts` pre-filtered to it.
+- **Deals** (`prisma` `Deal` model, `app/actions/deals.ts`,
+  `components/deals/`) — a `Contact` can have many `Deal`s (`title`, optional
+  `value`, `stage` enum `NEW → QUALIFIED → PROPOSAL_SENT → NEGOTIATION →
+  WON/LOST`, `createdAt`, optional `closedAt`). Simple list page, filterable
+  by stage; `closedAt` is set when a deal moves to `WON`/`LOST` and cleared if
+  it moves back out of those stages. Deliberately not wired into
+  `leadStatus` transitions (e.g. moving a contact to `OPEN_OPPORTUNITIES`
+  does not auto-create a `Deal`, and winning a `Deal` does not auto-update
+  `leadStatus`) — kept as two independently-editable records rather than
+  building a synced state machine between them.
+- **Tasks** (`prisma` `Task` model, `app/actions/tasks.ts`,
+  `components/tasks/`) — lightweight to-dos: `title`, optional `dueDate`,
+  `completed` boolean, optional `contactId` (nullable — a task doesn't have
+  to relate to a contact), `assignedTo` (`TeamMember` enum, same 5 names as
+  `Contact.contactOwner`). List page splits open vs. completed, sortable by
+  due date.
+- **Activity Feed** (`app/actions/activity-feed.ts`,
+  `components/activity-feed/`) — the same `Touch` model that backs each
+  contact's timeline, but queried globally and paginated
+  (`getActivityFeed(page)`, `PAGE_SIZE = 50`) newest-first across *all*
+  contacts, for a HubSpot-style cross-contact activity stream. Clicking an
+  entry opens that contact's detail panel.
+- **Dashboards** (`components/dashboard/`, `app/actions/dashboard.ts`) —
+  Recharts widgets, all accepting the shared `range`/`owner` URL params
+  (`DashboardFilters`: date range 7/30/90/365 days or all-time, and an
+  owner filter over the 5 `TeamMember`s):
+  - **New Contacts Created** (`StatTile`) — current-period count vs. the
+    immediately preceding period of equal length, with a % change indicator.
+  - **Contact Sources** (`ContactSourcesChart`) — donut by `leadSourceCaptured`.
+  - **Contacts Added Over Time** / **Deals Created Over Time**
+    (`DailyLineChart`, shared component parameterized by title/data) — daily
+    buckets over the selected range (defaults to a 90-day window when
+    "all time" is selected, since a genuinely unbounded daily axis isn't
+    useful).
+  - **Deals by Stage** (`DealsByStageChart`) — donut by `DealStage`.
+  - **Activity Type Breakdown** (`ActivityTypeChart`) — bar chart by `Touch.channel`,
+    reusing `CHANNEL_CONFIG` brand colors.
+  - **Team Activity Summary** (`TeamActivityChart`) — bar chart of touches
+    logged per `contactOwner`, date-range filterable.
+  - **Open Tasks Summary** / **Task Status Breakdown**
+    (`OpenTasksSummary` stat tile, `TaskStatusChart` donut) — HubSpot's
+    dashboard has an "Open Ticket Summary"/"Ticket Status Breakdown" pair;
+    since this CRM has no ticketing concept, these are repurposed onto
+    `Task` data instead (open count + overdue count; open vs. completed
+    breakdown) using the same visual layout, deliberately never using the
+    word "ticket" anywhere in the UI or code.
+  - Also retained from the pre-redesign dashboard: **Contacts by status**
+    (`StatusBarChart`), **Contacts by industry** (`IndustryPieChart`), and the
+    **sequence tracker** widget (`SequenceTrackerWidget`).
+  - Uses the CVD-validated 8-hue categorical palette in `lib/chart-palette.ts`
+    for the status/industry/sources/deals/team charts, and the real
+    per-channel brand colors (`lib/channel-config.tsx`) for the
+    activity-type chart.
 - **Import/Export** (`components/import-export/`, `lib/csv-import.ts`) —
   import is parsed **client-side** with papaparse, header-detected
   (`detectField`/`isFullNameHeader`/`detectIndustry`), previewed (first 6
@@ -151,9 +247,11 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   SQLite, which doesn't support that option — it still works fine on
   Postgres, just could be simplified to `skipDuplicates: true` if desired).
   The "default contact owner" dropdown is populated by `getContactOwnerPool()`
-  (`app/actions/contacts.ts`), not `getContactOwners()` — see the
-  `lib/contact-owners.ts` note under "Data model" below for why that
-  distinction matters.
+  (`app/actions/contacts.ts`), which simply returns `TEAM_MEMBERS`
+  (`lib/contact-owners.ts`) — the fixed list of 5 named team members, always
+  fully populated regardless of how many contacts currently have each owner
+  assigned (see the `contactOwner` note under "Data model" below for how this
+  differs from `getContactOwners()`).
 - **Instantly.ai webhook** (`app/api/webhooks/instantly/route.ts`,
   `lib/instantly.ts`) — verifies a shared secret
   (`INSTANTLY_WEBHOOK_SECRET`, checked against the `x-instantly-secret`
@@ -165,30 +263,58 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
 
 ## Data model (`prisma/schema.prisma`)
 
+This is the **post-redesign** model (migration
+`20260729180000_redesign_contact_model`), rebuilt to match HubSpot's
+contacts/CRM information architecture. See "Migration notes: old → new
+mapping" below for exactly how existing seeded data was carried forward.
+
 - **`User`** — login only (email/password + bcrypt hash). Not the same
   concept as `contactOwner` (see below).
-- **`Contact`** — the lead record. Notable fields:
-  - `contactOwner: String` — free-text email, drawn from the 100 seeded
-    placeholder addresses; intentionally *not* a `User` foreign key, since
-    the spec's 100 "sending accounts" are outreach mailboxes, not CRM logins.
-    The 100-owner pool itself isn't a DB table — it's generated
-    deterministically by `buildSeedOwners()`/`SEEDED_CONTACT_OWNER_POOL` in
-    `lib/contact-owners.ts`, imported by both `prisma/seed.ts` and
-    `getContactOwnerPool()`. This matters because only a handful of those
-    100 emails ever actually get attached to a `Contact` row (the seed only
-    assigns owners to its 6 sample leads); anything that needs to *offer the
-    full pool as options* (import's default-owner picker, the create-contact
-    form) must call `getContactOwnerPool()`, not `getContactOwners()` (which
-    does `DISTINCT contactOwner FROM Contact` and is correct only for the
-    Contacts table's owner *filter*, where showing an owner with zero
+- **`Contact`** — the lead record. Full property list:
+  - Identity: `firstName`, `lastName`, `jobTitle` (new), `email`,
+    `workPhone` (renamed from `phone`), `cellPhone` (new).
+  - Company: `company`, `websiteUrl` (new), `websiteTraffic: Int?` (new),
+    `numberOfEmployees: Int?` (new).
+  - Address (all new): `streetAddress`, `city`, `state`, `country`, `zipCode`.
+  - Pipeline: `lifecycleStage` (new enum: `SUBSCRIBER → LEAD →
+    MARKETING_QUALIFIED_LEAD → SALES_QUALIFIED_LEAD → OPPORTUNITY →
+    CUSTOMER`, default `LEAD`), `leadStatus` (replaced enum — see mapping
+    table below — default `NEW_LEAD`; this is still the Board's column set,
+    in `LEAD_STATUS_ORDER`, `lib/status-config.ts`), `leadSource` (unchanged,
+    original enum — the free-text-ish "how this lead entered the CRM"
+    field used by existing features), `leadSourceCaptured` (new, separate
+    enum: `LINKEDIN_SALES_NAVIGATOR` / `GOOGLE_MAPS` / `GOOGLE_DORK` /
+    `ONLINE_DIRECTORY` — the specific outbound-prospecting source, distinct
+    from `leadSource`; backs the dashboard's "Contact Sources" widget).
+  - Industry: `industry` (replaced enum — see mapping table below),
+    `industryDetail` (new enum, a flat list of 27 sub-industry values,
+    independent of `industry` — e.g. a `FACILITY_MAINTENANCE_COMPANIES`
+    contact's `industryDetail` might be `HVAC`, `JANITORIAL`, etc.).
+  - `contactOwner: TeamMember` — **replaced**: used to be a free-text email
+    drawn from a 100-address seeded pool (outreach sending mailboxes, not CRM
+    logins); now a fixed enum of the 5 real team members (`SAAD_AHMED`,
+    `SHARMIN`, `MUHAMMAD_NAUMAN`, `SALMAN`, `SHAHMIR` — `TEAM_MEMBER_ORDER`/
+    `TEAM_MEMBER_LABELS` in `lib/status-config.ts`). The old 100-email pool
+    (`lib/contact-owners.ts`'s prior `SEEDED_CONTACT_OWNER_POOL`) is gone
+    entirely from `Contact.contactOwner` — it was never meant to represent
+    CRM-user ownership, only sending accounts, and nothing else in the app
+    referenced those addresses, so there was nothing to preserve elsewhere.
+    `getContactOwnerPool()` (`app/actions/contacts.ts`) now just returns the
+    5-entry `TEAM_MEMBERS` list — always fully populated, unlike
+    `getContactOwners()` (`DISTINCT contactOwner FROM Contact`, correct only
+    for the Contacts table's owner *filter*, where an owner with zero
     contacts would be noise).
-  - `leadStatus` — 8-value enum, `OPEN_PROSPECT` default; this is the Board's
-    column set, in `LEAD_STATUS_ORDER` (`lib/status-config.ts`).
+  - Activity tracking: `lastContactDate` (new, set to `now()` whenever any
+    `Touch` is logged), `lastInterestedReply` (new, set to `now()` only when
+    a `Touch` is logged with outcome `CONNECTED` or `REPLIED`) — both
+    maintained by `recordContactActivity()` (`app/actions/touches.ts`),
+    called after every touch-creating action. `createdAt` (existing).
   - `sequenceStep: Int` — position in the 4-channel cadence: `0` = due for
     Email, `1` = due for LinkedIn, `2` = due for a Call, `3` = due for SMS,
     `4+` = repeat/breakup. This single field is what the Call Queue,
-    LinkedIn Tasks, and sequence tracker all filter/count on.
-  - `smsOptOut: Boolean` — gates the SMS send action everywhere.
+    LinkedIn Tasks, and sequence tracker all filter/count on. Unchanged by
+    the redesign.
+  - `smsOptOut: Boolean` — gates the SMS send action everywhere. Unchanged.
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)
@@ -196,11 +322,92 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   field in the schema for the per-channel vocabularies used by the UI
   (call outcomes, SMS outcomes, LinkedIn outcomes). This is the single
   source for the touch-history timeline, call-count/last-outcome columns,
-  and the "touches per channel" chart.
-- **`SmsTemplate`** — `name` + `body`, tokens replaced at send time.
+  the global Activity Feed, and the dashboard's activity-type/team-activity
+  charts. Unchanged by the redesign.
+- **`SmsTemplate`** — `name` + `body`, tokens replaced at send time. Unchanged.
+- **`Deal`** (new) — `contactId` (FK → `Contact`, cascade delete), `title`,
+  `value: Decimal?`, `stage` (`DealStage` enum: `NEW` / `QUALIFIED` /
+  `PROPOSAL_SENT` / `NEGOTIATION` / `WON` / `LOST`, default `NEW`),
+  `createdAt`, `closedAt: DateTime?`.
+- **`Task`** (new) — `contactId` (FK → `Contact`, **nullable**, `SET NULL` on
+  delete — a task can exist without a contact), `title`, `dueDate:
+  DateTime?`, `completed: Boolean` (default `false`), `assignedTo`
+  (`TeamMember` enum), `createdAt`, `updatedAt`.
 
-All four models use `id String @id @default(uuid())`. Cascading delete is set
-on `Touch.contactId` — deleting a contact deletes its touch history.
+All models use `id String @id @default(uuid())`. Deleting a `Contact`
+cascades to its `Touch` history and `Deal`s, but only detaches (`SET NULL`)
+its `Task`s rather than deleting them, since a task can stand alone.
+
+## Migration notes: old → new mapping
+
+The redesign migration (`prisma/migrations/20260729180000_redesign_contact_model/migration.sql`)
+preserves existing data end-to-end rather than dropping and recreating
+columns — verified by seeding the *old* schema with real data, applying this
+migration on top, and confirming with `npx prisma migrate diff` that the
+resulting database has zero drift from the new `schema.prisma`. Enum swaps
+use an add-new-column → `CASE`-mapped backfill → drop-old → rename-new
+pattern (not a naive `::text::NewEnum` cast, which fails outright for any old
+value that has no literal in the new enum) so old value coverage is checked
+explicitly rather than left to fail at migration time.
+
+- **`phone` → `workPhone`**: straight `RENAME COLUMN`, no data loss, no
+  mapping needed.
+- **`leadStatus`** (old 8-value enum → new 9-value enum, default changed
+  `OPEN_PROSPECT` → `NEW_LEAD`):
+  | Old value | New value | Note |
+  |---|---|---|
+  | `OPEN_PROSPECT` | `OPEN_PROSPECT` | unchanged |
+  | `SDR_IN_PROCESS` | `IN_PROCESS` | renamed |
+  | `EMAIL_SENT` | `EMAIL_SENT` | unchanged |
+  | `CONNECTED` | `CONNECTED` | unchanged |
+  | `BAD_TIMING` | `DEAD_LEAD` | collapsed — no equivalent "come back later" state in the new set |
+  | `NOT_INTERESTED` | `DEAD_LEAD` | collapsed |
+  | `DEAD_LEAD` | `DEAD_LEAD` | unchanged |
+  | `DUPLICATE` | `DEAD_LEAD` | collapsed |
+
+  `NEW_LEAD`, `OPEN_OPPORTUNITIES`, `CURRENT_CUSTOMER`, and `CHURNED` are new
+  values with no old equivalent; `NEW_LEAD` is the new default going forward
+  but is **not** retroactively applied to any existing contact (every
+  existing contact got an explicit mapped value above, never a blind
+  default).
+- **`industry`** (old enum → new 6-value enum, same default slot
+  `FACILITY_MAINTENANCE_COMPANIES`):
+  | Old value | New value | Note |
+  |---|---|---|
+  | `IFM` | `INTEGRATED_FACILITY_MANAGEMENT` | |
+  | `FACILITY_MANAGEMENT` | `INTEGRATED_FACILITY_MANAGEMENT` | |
+  | `FACILITY_SERVICES` | `FACILITY_MAINTENANCE_COMPANIES` | |
+  | `FACILITY_MAINTENANCE` | `FACILITY_MAINTENANCE_COMPANIES` | |
+  | `JANITORIAL_CLEANING` | `FACILITY_MAINTENANCE_COMPANIES` | granularity now lives in `industryDetail` |
+  | `HVAC` | `FACILITY_MAINTENANCE_COMPANIES` | granularity now lives in `industryDetail` |
+  | `FIRE_PROTECTION` | `FACILITY_MAINTENANCE_COMPANIES` | no matching `industryDetail` value exists |
+  | `OTHER` | `FACILITY_MAINTENANCE_COMPANIES` | fallback |
+- **`industryDetail`** (previously free text → new fixed 27-value enum):
+  there's no reliable general mapping from arbitrary free text to a closed
+  category list, so this column is intentionally **best-effort keyword
+  matching** (`ILIKE '%hvac%'`, `%janitorial%`/`%cleaning%`, `%electrical%`,
+  etc. — see the migration file for the full list of ~19 keyword rules).
+  Anything that doesn't match a keyword (e.g. "construction", generic IFM
+  descriptions) is set to `NULL` rather than guessed, and the original free
+  text is not recoverable after this migration — re-enter it by hand on
+  affected contacts if a specific value matters.
+- **`contactOwner`** (free-text sending-account email → `TeamMember` enum):
+  there is no correspondence between the old 100 placeholder emails and the
+  5 named team members, so every existing contact is deterministically
+  (not randomly re-rolled on re-run — stable, hashed off the contact's own
+  `id`) distributed across the 5 names via
+  `(ARRAY[...5 names...])[(abs(hashtext("id")) % 5) + 1]`. This is a
+  placeholder assignment, not a real ownership decision — reassign manually
+  per contact afterward if actual ownership matters.
+- **`lastContactDate` / `lastInterestedReply`** (new columns, both
+  nullable): backfilled from existing `Touch` history via a correlated
+  subquery (`MAX(createdAt)` per `contactId`, the latter filtered to
+  `outcome IN ('CONNECTED', 'REPLIED')`) rather than left `NULL` for contacts
+  that already had activity.
+- All other new `Contact` columns (`jobTitle`, `cellPhone`, `websiteUrl`,
+  `websiteTraffic`, `numberOfEmployees`, `streetAddress`, `city`, `state`,
+  `country`, `zipCode`, `leadSourceCaptured`) had no old equivalent at all
+  and are simply `NULL` on pre-existing contacts.
 
 ## Conventions
 
@@ -230,7 +437,10 @@ on `Touch.contactId` — deleting a contact deletes its touch history.
   environment's network policy) to match the standard shadcn source/API, so
   the CLI can still be used normally in the future to add more components.
 - **Server Action files** (`app/actions/*.ts`) may only export async
-  functions (and types) — Next.js enforces this. Put sync helpers in `lib/`.
+  functions (and types) — Next.js enforces this. Put sync helpers *and any
+  runtime consts* in `lib/` instead: e.g. `SAVED_VIEWS` (the saved-view
+  definitions) lives in `lib/saved-views.ts`, not `app/actions/contacts.ts`,
+  specifically because a plain exported object literal isn't allowed there.
 
 ## Database / deployment
 
@@ -261,7 +471,7 @@ for the Instantly.ai stretch goal: `INSTANTLY_API_KEY`,
 ```bash
 npm install
 npx prisma migrate dev   # first time / after schema changes
-npx prisma db seed       # 6 sample contacts, 100 contactOwner emails, demo user
+npx prisma db seed       # 6 sample contacts (+ 1 deal, 1 task), demo user
 npm run dev
 ```
 
