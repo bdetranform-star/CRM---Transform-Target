@@ -1,6 +1,6 @@
 import { getContactsTable, getContactOwners, getSavedViewCounts } from "@/app/actions/contacts";
 import { ContactsTableView } from "@/components/contacts-table/contacts-table-view";
-import type { ContactFilter } from "@/lib/contact-filters";
+import { contactFilterSchema, type ContactFilter } from "@/lib/contact-filters";
 
 const PAGE_SIZE = 50;
 
@@ -9,9 +9,10 @@ function parseFilters(raw: string | undefined): ContactFilter[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (f) => f && typeof f.field === "string" && typeof f.operator === "string" && typeof f.value === "string"
-    );
+    return parsed
+      .map((item) => contactFilterSchema.safeParse(item))
+      .filter((result): result is { success: true; data: ContactFilter } => result.success)
+      .map((result) => result.data);
   } catch {
     return [];
   }

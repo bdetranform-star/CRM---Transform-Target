@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Trash2, SlidersHorizontal, X, Lock } from "lucide-react";
 
 import {
   Sheet,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectTrigger,
@@ -24,27 +25,202 @@ import {
   FILTER_FIELD_MAP,
   OPERATORS_BY_TYPE,
   describeFilter,
+  isFilterComplete,
   type ContactFilter,
+  type FilterFieldDef,
   type FilterOperator,
 } from "@/lib/contact-filters";
 
 function emptyFilter(): ContactFilter {
-  const first = FILTERABLE_FIELDS[0];
-  return { field: first.field, operator: OPERATORS_BY_TYPE[first.type][0].value, value: "" };
+  return { field: "", operator: "contains" };
+}
+
+/** Searchable single-select list — used to pick which property to filter on. */
+function PropertyPicker({ onSelect }: { onSelect: (field: string) => void }) {
+  const [query, setQuery] = useState("");
+  const filtered = FILTERABLE_FIELDS.filter((f) => f.label.toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <Input
+        placeholder="Search properties..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        autoFocus
+        className="rounded-none border-0 border-b border-border focus-visible:ring-0"
+      />
+      <div className="max-h-56 overflow-y-auto p-1">
+        {filtered.map((f) => (
+          <button
+            key={f.field}
+            type="button"
+            onClick={() => onSelect(f.field)}
+            className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-secondary"
+          >
+            {f.label}
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <p className="px-2 py-3 text-center text-xs text-muted-foreground">No matching properties.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Searchable multi-select checklist — used by "is any of" / "is none of". */
+function SearchableChecklist({
+  options,
+  selected,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      {options.length > 6 && (
+        <Input
+          placeholder="Search..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="rounded-none border-0 border-b border-border focus-visible:ring-0"
+        />
+      )}
+      <div className="max-h-48 overflow-y-auto p-1">
+        {filtered.map((opt) => {
+          const checked = selected.includes(opt.value);
+          return (
+            <label
+              key={opt.value}
+              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-secondary"
+            >
+              <Checkbox
+                checked={checked}
+                onCheckedChange={(v) => {
+                  if (v === true) onChange([...selected, opt.value]);
+                  else onChange(selected.filter((s) => s !== opt.value));
+                }}
+              />
+              {opt.label}
+            </label>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p className="px-2 py-3 text-center text-xs text-muted-foreground">No matches.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Renders the right-shaped value input(s) for the filter's current operator. */
+function ValueEditor({
+  filter,
+  def,
+  onChange,
+}: {
+  filter: ContactFilter;
+  def: FilterFieldDef;
+  onChange: (patch: Partial<ContactFilter>) => void;
+}) {
+  if (filter.operator === "is_known" || filter.operator === "is_unknown") {
+    return null;
+  }
+
+  if (filter.operator === "is_any_of" || filter.operator === "is_none_of") {
+    return (
+      <SearchableChecklist
+        options={def.options ?? []}
+        selected={filter.values ?? []}
+        onChange={(values) => onChange({ values })}
+      />
+    );
+  }
+
+  if (filter.operator === "between") {
+    if (def.type === "date") {
+      return (
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={filter.valueMin ?? ""}
+            onChange={(e) => onChange({ valueMin: e.target.value })}
+          />
+          <span className="text-xs text-muted-foreground">and</span>
+          <Input
+            type="date"
+            value={filter.valueMax ?? ""}
+            onChange={(e) => onChange({ valueMax: e.target.value })}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          placeholder="Min"
+          value={filter.valueMin ?? ""}
+          onChange={(e) => onChange({ valueMin: e.target.value })}
+        />
+        <span className="text-xs text-muted-foreground">and</span>
+        <Input
+          type="number"
+          placeholder="Max"
+          value={filter.valueMax ?? ""}
+          onChange={(e) => onChange({ valueMax: e.target.value })}
+        />
+      </div>
+    );
+  }
+
+  if (filter.operator === "in_last_days") {
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          min={1}
+          className="w-24"
+          value={filter.value ?? ""}
+          onChange={(e) => onChange({ value: e.target.value })}
+        />
+        <span className="text-sm text-muted-foreground">days</span>
+      </div>
+    );
+  }
+
+  if (def.type === "date") {
+    return <Input type="date" value={filter.value ?? ""} onChange={(e) => onChange({ value: e.target.value })} />;
+  }
+
+  if (def.type === "number") {
+    return <Input type="number" value={filter.value ?? ""} onChange={(e) => onChange({ value: e.target.value })} />;
+  }
+
+  return <Input value={filter.value ?? ""} onChange={(e) => onChange({ value: e.target.value })} />;
 }
 
 export function AdvancedFiltersPanel({
   filters,
   onChange,
+  lockedFilter,
 }: {
   filters: ContactFilter[];
   onChange: (filters: ContactFilter[]) => void;
+  lockedFilter?: ContactFilter;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ContactFilter[]>(filters);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   function openPanel() {
-    setDraft(filters.length > 0 ? filters : [emptyFilter()]);
+    setDraft(filters);
+    setEditingIndex(null);
     setOpen(true);
   }
 
@@ -52,21 +228,38 @@ export function AdvancedFiltersPanel({
     setDraft((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   }
 
-  function updateField(index: number, field: string) {
+  function selectField(index: number, field: string) {
     const def = FILTER_FIELD_MAP[field];
-    updateRow(index, { field, operator: OPERATORS_BY_TYPE[def.type][0].value, value: "" });
+    updateRow(index, {
+      field,
+      operator: OPERATORS_BY_TYPE[def.type][0].value,
+      value: undefined,
+      values: undefined,
+      valueMin: undefined,
+      valueMax: undefined,
+    });
+    setEditingIndex(null);
+  }
+
+  function changeOperator(index: number, operator: FilterOperator) {
+    updateRow(index, { operator, value: undefined, values: undefined, valueMin: undefined, valueMax: undefined });
   }
 
   function removeRow(index: number) {
     setDraft((rows) => rows.filter((_, i) => i !== index));
+    setEditingIndex(null);
   }
 
   function addRow() {
-    setDraft((rows) => [...rows, emptyFilter()]);
+    setDraft((rows) => {
+      const next = [...rows, emptyFilter()];
+      setEditingIndex(next.length - 1);
+      return next;
+    });
   }
 
   function apply() {
-    onChange(draft.filter((f) => f.value.trim() !== ""));
+    onChange(draft.filter(isFilterComplete));
     setOpen(false);
   }
 
@@ -81,6 +274,13 @@ export function AdvancedFiltersPanel({
         <SlidersHorizontal className="size-4" />
         Advanced filters {filters.length > 0 ? `(${filters.length})` : ""}
       </Button>
+
+      {lockedFilter && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          <Lock className="size-3" />
+          {describeFilter(lockedFilter)}
+        </span>
+      )}
 
       {filters.map((filter, index) => (
         <span
@@ -123,27 +323,35 @@ export function AdvancedFiltersPanel({
               <div className="flex flex-col gap-3">
                 {draft.map((filter, index) => {
                   const def = FILTER_FIELD_MAP[filter.field];
+                  const isPicking = editingIndex === index || !def;
                   return (
-                    <div key={index} className="flex items-start gap-2 rounded-lg border border-border p-3">
-                      <div className="flex flex-1 flex-col gap-2">
-                        <Select value={filter.field} onValueChange={(v) => updateField(index, v)}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-72">
-                            {FILTERABLE_FIELDS.map((f) => (
-                              <SelectItem key={f.field} value={f.field}>
-                                {f.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="flex gap-2">
+                    <div key={index} className="rounded-lg border border-border p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        {def && !isPicking ? (
+                          <button
+                            type="button"
+                            onClick={() => setEditingIndex(index)}
+                            className="text-sm font-medium hover:underline"
+                          >
+                            {def.label}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium text-muted-foreground">Choose a property</span>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={() => removeRow(index)}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+
+                      {isPicking ? (
+                        <PropertyPicker onSelect={(field) => selectField(index, field)} />
+                      ) : (
+                        <div className="flex flex-col gap-2">
                           <Select
                             value={filter.operator}
-                            onValueChange={(v) => updateRow(index, { operator: v as FilterOperator })}
+                            onValueChange={(v) => changeOperator(index, v as FilterOperator)}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -154,49 +362,9 @@ export function AdvancedFiltersPanel({
                               ))}
                             </SelectContent>
                           </Select>
-
-                          {def.type === "enum" ? (
-                            <Select
-                              value={filter.value}
-                              onValueChange={(v) => updateRow(index, { value: v })}
-                            >
-                              <SelectTrigger className="flex-1">
-                                <SelectValue placeholder="Choose..." />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-72">
-                                {def.options?.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : def.type === "date" ? (
-                            <Input
-                              type="date"
-                              className="flex-1"
-                              value={filter.value}
-                              onChange={(e) => updateRow(index, { value: e.target.value })}
-                            />
-                          ) : def.type === "number" ? (
-                            <Input
-                              type="number"
-                              className="flex-1"
-                              value={filter.value}
-                              onChange={(e) => updateRow(index, { value: e.target.value })}
-                            />
-                          ) : (
-                            <Input
-                              className="flex-1"
-                              value={filter.value}
-                              onChange={(e) => updateRow(index, { value: e.target.value })}
-                            />
-                          )}
+                          <ValueEditor filter={filter} def={def} onChange={(patch) => updateRow(index, patch)} />
                         </div>
-                      </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeRow(index)}>
-                        <Trash2 className="size-4" />
-                      </Button>
+                      )}
                     </div>
                   );
                 })}

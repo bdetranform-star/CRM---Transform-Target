@@ -39,7 +39,7 @@ import {
 import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG, TEAM_MEMBER_LABELS } from "@/lib/status-config";
 import type { ContactFilter } from "@/lib/contact-filters";
 import type { getContactsTable } from "@/app/actions/contacts";
-import type { SavedView } from "@/lib/saved-views";
+import { SAVED_VIEWS, SAVED_VIEW_LOCKED_FILTER, type SavedView } from "@/lib/saved-views";
 
 type TableData = Awaited<ReturnType<typeof getContactsTable>>;
 
@@ -75,6 +75,10 @@ export function ContactsTableView({
       return [];
     }
   }, [searchParams]);
+
+  const activeView = (searchParams.get("view") as SavedView | null) ?? SAVED_VIEWS.ALL;
+  const activeCustomId = searchParams.get("customView");
+  const lockedFilter = activeCustomId ? undefined : SAVED_VIEW_LOCKED_FILTER[activeView];
 
   function updateParams(updates: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -200,7 +204,7 @@ export function ContactsTableView({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <AdvancedFiltersPanel filters={filters} onChange={handleFiltersChange} />
+        <AdvancedFiltersPanel filters={filters} onChange={handleFiltersChange} lockedFilter={lockedFilter} />
       </div>
 
       {selectedIds.length > 0 && (

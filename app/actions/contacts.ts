@@ -17,7 +17,7 @@ import {
 } from "@/lib/validations";
 import { LEAD_STATUS_ORDER } from "@/lib/status-config";
 import { TEAM_MEMBERS } from "@/lib/contact-owners";
-import { buildWhereFromFilters, type ContactFilter } from "@/lib/contact-filters";
+import { buildWhereFromFilters, contactFilterSchema, type ContactFilter } from "@/lib/contact-filters";
 import { SAVED_VIEWS } from "@/lib/saved-views";
 
 export async function getBoardContacts() {
@@ -124,7 +124,10 @@ export async function getContactsTable(params: ContactsTableParams) {
   }
 
   if (params.filters?.length) {
-    Object.assign(where, buildWhereFromFilters(params.filters));
+    // Server Actions are directly callable, so re-validate here too rather
+    // than trusting the caller already ran this through contactFilterSchema.
+    const validFilters = params.filters.filter((f) => contactFilterSchema.safeParse(f).success);
+    Object.assign(where, buildWhereFromFilters(validFilters));
   }
 
   const sortField =
