@@ -1,25 +1,64 @@
 import { z } from "zod";
 
 export const leadStatusEnum = z.enum([
+  "NEW_LEAD",
   "OPEN_PROSPECT",
-  "SDR_IN_PROCESS",
+  "IN_PROCESS",
   "EMAIL_SENT",
   "CONNECTED",
-  "BAD_TIMING",
-  "NOT_INTERESTED",
+  "OPEN_OPPORTUNITIES",
+  "CURRENT_CUSTOMER",
+  "CHURNED",
   "DEAD_LEAD",
-  "DUPLICATE",
+]);
+
+export const lifecycleStageEnum = z.enum([
+  "SUBSCRIBER",
+  "LEAD",
+  "MARKETING_QUALIFIED_LEAD",
+  "SALES_QUALIFIED_LEAD",
+  "OPPORTUNITY",
+  "CUSTOMER",
 ]);
 
 export const industryEnum = z.enum([
-  "IFM",
-  "FACILITY_MANAGEMENT",
-  "FACILITY_SERVICES",
-  "FACILITY_MAINTENANCE",
-  "JANITORIAL_CLEANING",
+  "FACILITY_MAINTENANCE_COMPANIES",
+  "INTEGRATED_FACILITY_MANAGEMENT",
+  "MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS",
+  "TRANSPORTATION_LOGISTICS",
+  "CONSTRUCTION_COMPANIES",
+  "HEALTHCARE_FACILITIES",
+]);
+
+export const industryDetailEnum = z.enum([
   "HVAC",
-  "FIRE_PROTECTION",
-  "OTHER",
+  "ELECTRICAL",
+  "PLUMBING",
+  "ROOFING",
+  "HANDYMAN",
+  "JANITORIAL",
+  "LANDSCAPING",
+  "PEST_CONTROL",
+  "SECURITY",
+  "COMMERCIAL_OFFICES",
+  "INDUSTRIAL_MANUFACTURING",
+  "RETAIL_CHAINS",
+  "EDUCATIONAL_CAMPUSES",
+  "QSR_FAST_FOOD",
+  "CASUAL_DINING",
+  "MULTI_BRAND_OPERATOR",
+  "FREIGHT_BROKERAGE_3PL",
+  "ASSET_BASED_FLEET",
+  "WAREHOUSING",
+  "LAST_MILE_DELIVERY",
+  "COMMERCIAL",
+  "RESIDENTIAL",
+  "INFRASTRUCTURE",
+  "SPECIALTY_SUBCONTRACTOR",
+  "URGENT_CARE_CHAINS",
+  "HOSPITALS",
+  "MULTI_SPECIALTY_CLINICS",
+  "SENIOR_LIVING_FACILITIES",
 ]);
 
 export const leadSourceEnum = z.enum([
@@ -31,6 +70,30 @@ export const leadSourceEnum = z.enum([
   "INBOUND",
   "EVENT",
   "OTHER",
+]);
+
+export const leadSourceCapturedEnum = z.enum([
+  "LINKEDIN_SALES_NAVIGATOR",
+  "GOOGLE_MAPS",
+  "GOOGLE_DORK",
+  "ONLINE_DIRECTORY",
+]);
+
+export const teamMemberEnum = z.enum([
+  "SAAD_AHMED",
+  "SHARMIN",
+  "MUHAMMAD_NAUMAN",
+  "SALMAN",
+  "SHAHMIR",
+]);
+
+export const dealStageEnum = z.enum([
+  "NEW",
+  "QUALIFIED",
+  "PROPOSAL_SENT",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
 ]);
 
 export const channelEnum = z.enum(["EMAIL", "LINKEDIN", "CALL", "SMS", "NOTE"]);
@@ -59,6 +122,11 @@ const optionalTrimmedString = z
   .optional()
   .transform((v) => (v === "" ? undefined : v));
 
+const optionalNonNegativeInt = z
+  .union([z.coerce.number().int().min(0), z.literal("")])
+  .optional()
+  .transform((v) => (v === "" || v === undefined ? undefined : v));
+
 export const setupAdminSchema = z.object({
   email: z.string().trim().email("Enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -67,15 +135,33 @@ export const setupAdminSchema = z.object({
 export const contactCreateSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: optionalTrimmedString,
+  jobTitle: optionalTrimmedString,
   email: z.string().trim().email("Enter a valid email"),
-  phone: optionalTrimmedString,
+  workPhone: optionalTrimmedString,
+  cellPhone: optionalTrimmedString,
   linkedinUrl: optionalTrimmedString,
   company: optionalTrimmedString,
-  contactOwner: z.string().trim().min(1, "Contact owner is required"),
-  leadStatus: leadStatusEnum.default("OPEN_PROSPECT"),
-  industry: industryEnum.default("OTHER"),
-  industryDetail: optionalTrimmedString,
+  lifecycleStage: lifecycleStageEnum.default("LEAD"),
+  leadStatus: leadStatusEnum.default("NEW_LEAD"),
+  industry: industryEnum.default("FACILITY_MAINTENANCE_COMPANIES"),
+  industryDetail: z
+    .union([industryDetailEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  contactOwner: teamMemberEnum,
   leadSource: leadSourceEnum.default("OTHER"),
+  leadSourceCaptured: z
+    .union([leadSourceCapturedEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  websiteUrl: optionalTrimmedString,
+  websiteTraffic: optionalNonNegativeInt,
+  numberOfEmployees: optionalNonNegativeInt,
+  streetAddress: optionalTrimmedString,
+  city: optionalTrimmedString,
+  state: optionalTrimmedString,
+  country: optionalTrimmedString,
+  zipCode: optionalTrimmedString,
   sequenceStep: z.coerce.number().int().min(0).max(10).default(0),
   smsOptOut: z.boolean().default(false),
 });
@@ -133,16 +219,48 @@ export const importContactRowSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().optional().default(""),
   email: z.string().trim().email(),
-  phone: z.string().trim().optional().default(""),
+  workPhone: z.string().trim().optional().default(""),
   linkedinUrl: z.string().trim().optional().default(""),
   company: z.string().trim().optional().default(""),
-  industry: industryEnum.optional().default("OTHER"),
-  contactOwner: z.string().trim().optional().default(""),
+  industry: industryEnum.optional().default("FACILITY_MAINTENANCE_COMPANIES"),
+  contactOwner: z.union([teamMemberEnum, z.literal("")]).optional().default(""),
 });
 
 export const importContactsSchema = z.object({
   contacts: z.array(importContactRowSchema).min(1).max(5000),
-  defaultOwner: z.string().trim().min(1),
+  defaultOwner: teamMemberEnum,
+});
+
+export const dealCreateSchema = z.object({
+  contactId: z.string().uuid(),
+  title: z.string().trim().min(1, "Deal title is required"),
+  value: z
+    .union([z.coerce.number().min(0), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  stage: dealStageEnum.default("NEW"),
+});
+
+export const dealUpdateSchema = dealCreateSchema.partial().extend({
+  id: z.string().uuid(),
+});
+
+export const taskCreateSchema = z.object({
+  contactId: z
+    .union([z.string().uuid(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  title: z.string().trim().min(1, "Task title is required"),
+  dueDate: z
+    .union([z.coerce.date(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  assignedTo: teamMemberEnum,
+  completed: z.boolean().default(false),
+});
+
+export const taskUpdateSchema = taskCreateSchema.partial().extend({
+  id: z.string().uuid(),
 });
 
 export type ContactCreateInput = z.infer<typeof contactCreateSchema>;

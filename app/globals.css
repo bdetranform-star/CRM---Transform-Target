@@ -35,23 +35,25 @@
   --ring: var(--accent-warm);
   --radius: 0.625rem;
 
-  /* Status pill colors — soft backgrounds matching each stage */
+  /* Status pill colors — soft backgrounds matching each of the 9 LeadStatus stages */
+  --status-new-lead-bg: #f1f5f9;
+  --status-new-lead-fg: #334155;
   --status-open-prospect-bg: #eef2ff;
   --status-open-prospect-fg: #4338ca;
-  --status-sdr-in-process-bg: #fef9c3;
-  --status-sdr-in-process-fg: #854d0e;
+  --status-in-process-bg: #fef9c3;
+  --status-in-process-fg: #854d0e;
   --status-email-sent-bg: #e0f2fe;
   --status-email-sent-fg: #0369a1;
   --status-connected-bg: #dcfce7;
   --status-connected-fg: #15803d;
-  --status-bad-timing-bg: #fef3c7;
-  --status-bad-timing-fg: #92400e;
-  --status-not-interested-bg: #fee2e2;
-  --status-not-interested-fg: #b91c1c;
-  --status-dead-lead-bg: #f1f5f9;
-  --status-dead-lead-fg: #475569;
-  --status-duplicate-bg: #f3e8ff;
-  --status-duplicate-fg: #7e22ce;
+  --status-open-opportunities-bg: #ffedd5;
+  --status-open-opportunities-fg: #c2410c;
+  --status-current-customer-bg: #d1fae5;
+  --status-current-customer-fg: #047857;
+  --status-churned-bg: #fee2e2;
+  --status-churned-fg: #b91c1c;
+  --status-dead-lead-bg: #f3f4f6;
+  --status-dead-lead-fg: #6b7280;
 
   /* Channel colors — consistent per-channel identity, used in table/timeline/dashboard */
   --channel-email: #0284c7;

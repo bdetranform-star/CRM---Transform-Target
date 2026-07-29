@@ -21,28 +21,81 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+/// The 5 named team members. Used for both Contact.contactOwner and
+/// Task.assignedTo — replaces the earlier 100 placeholder sending-account
+/// emails, which represented outreach mailboxes rather than people.
+enum TeamMember {
+  SAAD_AHMED
+  SHARMIN
+  MUHAMMAD_NAUMAN
+  SALMAN
+  SHAHMIR
+}
+
 enum LeadStatus {
+  NEW_LEAD
   OPEN_PROSPECT
-  SDR_IN_PROCESS
+  IN_PROCESS
   EMAIL_SENT
   CONNECTED
-  BAD_TIMING
-  NOT_INTERESTED
+  OPEN_OPPORTUNITIES
+  CURRENT_CUSTOMER
+  CHURNED
   DEAD_LEAD
-  DUPLICATE
+}
+
+enum LifecycleStage {
+  SUBSCRIBER
+  LEAD
+  MARKETING_QUALIFIED_LEAD
+  SALES_QUALIFIED_LEAD
+  OPPORTUNITY
+  CUSTOMER
 }
 
 enum Industry {
-  IFM
-  FACILITY_MANAGEMENT
-  FACILITY_SERVICES
-  FACILITY_MAINTENANCE
-  JANITORIAL_CLEANING
-  HVAC
-  FIRE_PROTECTION
-  OTHER
+  FACILITY_MAINTENANCE_COMPANIES
+  INTEGRATED_FACILITY_MANAGEMENT
+  MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS
+  TRANSPORTATION_LOGISTICS
+  CONSTRUCTION_COMPANIES
+  HEALTHCARE_FACILITIES
 }
 
+/// Finer-grained vertical than Industry. Intentionally a flat list (not
+/// filtered by Industry) per spec — a dropdown of every recognized niche.
+enum IndustryDetail {
+  HVAC
+  ELECTRICAL
+  PLUMBING
+  ROOFING
+  HANDYMAN
+  JANITORIAL
+  LANDSCAPING
+  PEST_CONTROL
+  SECURITY
+  COMMERCIAL_OFFICES
+  INDUSTRIAL_MANUFACTURING
+  RETAIL_CHAINS
+  EDUCATIONAL_CAMPUSES
+  QSR_FAST_FOOD
+  CASUAL_DINING
+  MULTI_BRAND_OPERATOR
+  FREIGHT_BROKERAGE_3PL
+  ASSET_BASED_FLEET
+  WAREHOUSING
+  LAST_MILE_DELIVERY
+  COMMERCIAL
+  RESIDENTIAL
+  INFRASTRUCTURE
+  SPECIALTY_SUBCONTRACTOR
+  URGENT_CARE_CHAINS
+  HOSPITALS
+  MULTI_SPECIALTY_CLINICS
+  SENIOR_LIVING_FACILITIES
+}
+
+/// Which outreach channel/cadence sourced this lead (existing field).
 enum LeadSource {
   COLD_EMAIL
   LINKEDIN
@@ -52,6 +105,15 @@ enum LeadSource {
   INBOUND
   EVENT
   OTHER
+}
+
+/// How the lead's contact data was originally sourced/scraped — distinct
+/// from LeadSource, which is about the outreach channel, not data provenance.
+enum LeadSourceCaptured {
+  LINKEDIN_SALES_NAVIGATOR
+  GOOGLE_MAPS
+  GOOGLE_DORK
+  ONLINE_DIRECTORY
 }
 
 enum Channel {
@@ -67,31 +129,66 @@ enum Direction {
   INBOUND
 }
 
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
 model Contact {
-  id             String     @id @default(uuid())
+  id             String   @id @default(uuid())
   firstName      String
   lastName       String?
-  email          String     @unique
-  phone          String?
+  jobTitle       String?
+  email          String   @unique
+  workPhone      String?
+  cellPhone      String?
   linkedinUrl    String?
   company        String?
-  contactOwner   String
-  leadStatus     LeadStatus @default(OPEN_PROSPECT)
-  industry       Industry   @default(OTHER)
-  industryDetail String?
-  leadSource     LeadSource @default(OTHER)
+
+  lifecycleStage LifecycleStage @default(LEAD)
+  leadStatus     LeadStatus     @default(NEW_LEAD)
+  industry       Industry       @default(FACILITY_MAINTENANCE_COMPANIES)
+  industryDetail IndustryDetail?
+  contactOwner   TeamMember
+  leadSource     LeadSource     @default(OTHER)
+  /// How this lead's data was originally sourced/scraped (distinct from leadSource).
+  leadSourceCaptured LeadSourceCaptured?
+
+  websiteUrl        String?
+  websiteTraffic    Int?
+  numberOfEmployees Int?
+  streetAddress     String?
+  city              String?
+  state             String?
+  country           String?
+  zipCode           String?
+
+  /// Most recent Touch with a positive/interested outcome (CONNECTED/REPLIED
+  /// on any channel) — set automatically when such a Touch is logged.
+  lastInterestedReply DateTime?
+  /// Most recent Touch of any kind — set automatically on every Touch.
+  lastContactDate     DateTime?
+
   /// Position in the 4-channel cadence: 0=Email 1, 1=LinkedIn touch, 2=Call, 3=SMS, 4+=repeat/breakup
-  sequenceStep   Int        @default(0)
-  smsOptOut      Boolean    @default(false)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  sequenceStep   Int      @default(0)
+  smsOptOut      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   touches Touch[]
+  deals   Deal[]
+  tasks   Task[]
 
   @@index([leadStatus])
+  @@index([lifecycleStage])
   @@index([industry])
   @@index([contactOwner])
   @@index([sequenceStep])
+  @@index([company])
 }
 
 model Touch {
@@ -118,4 +215,34 @@ model SmsTemplate {
   body      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Deal {
+  id        String    @id @default(uuid())
+  contactId String
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  title     String
+  value     Decimal?  @db.Decimal(12, 2)
+  stage     DealStage @default(NEW)
+  createdAt DateTime  @default(now())
+  closedAt  DateTime?
+
+  @@index([contactId])
+  @@index([stage])
+}
+
+model Task {
+  id         String     @id @default(uuid())
+  contactId  String?
+  contact    Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title      String
+  dueDate    DateTime?
+  completed  Boolean    @default(false)
+  assignedTo TeamMember
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([contactId])
+  @@index([completed])
+  @@index([assignedTo])
 }

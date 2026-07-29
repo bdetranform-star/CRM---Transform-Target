@@ -1,107 +1,169 @@
-import { PrismaClient, Industry, LeadSource, LeadStatus } from "@prisma/client";
+import {
+  PrismaClient,
+  Industry,
+  IndustryDetail,
+  LeadSource,
+  LeadSourceCaptured,
+  LeadStatus,
+  LifecycleStage,
+  TeamMember,
+  DealStage,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-import { buildSeedOwners } from "../lib/contact-owners";
-
 const prisma = new PrismaClient();
+
+const TEAM_MEMBERS: TeamMember[] = [
+  TeamMember.SAAD_AHMED,
+  TeamMember.SHARMIN,
+  TeamMember.MUHAMMAD_NAUMAN,
+  TeamMember.SALMAN,
+  TeamMember.SHAHMIR,
+];
 
 const SAMPLE_LEADS: Array<{
   firstName: string;
   lastName: string;
+  jobTitle: string;
   email: string;
-  phone: string;
+  workPhone: string;
   linkedinUrl: string;
   company: string;
   industry: Industry;
-  industryDetail: string;
+  industryDetail: IndustryDetail | null;
   leadSource: LeadSource;
+  leadSourceCaptured: LeadSourceCaptured;
   leadStatus: LeadStatus;
+  lifecycleStage: LifecycleStage;
+  city: string;
+  state: string;
+  country: string;
+  numberOfEmployees: number;
   sequenceStep: number;
 }> = [
   {
     firstName: "Diane",
     lastName: "Holcomb",
+    jobTitle: "VP of Facilities",
     email: "diane.holcomb@brightfacilities.com",
-    phone: "+1-312-555-0142",
+    workPhone: "+1-312-555-0142",
     linkedinUrl: "https://www.linkedin.com/in/diane-holcomb",
     company: "Bright Facilities Group",
-    industry: Industry.IFM,
-    industryDetail: "National IFM provider, 40+ regional accounts",
+    industry: Industry.INTEGRATED_FACILITY_MANAGEMENT,
+    industryDetail: null,
     leadSource: LeadSource.COLD_EMAIL,
+    leadSourceCaptured: LeadSourceCaptured.LINKEDIN_SALES_NAVIGATOR,
     leadStatus: LeadStatus.OPEN_PROSPECT,
+    lifecycleStage: LifecycleStage.LEAD,
+    city: "Chicago",
+    state: "IL",
+    country: "USA",
+    numberOfEmployees: 420,
     sequenceStep: 0,
   },
   {
     firstName: "Marcus",
     lastName: "Tran",
+    jobTitle: "Operations Director",
     email: "marcus.tran@apexjanitorial.com",
-    phone: "+1-404-555-0198",
+    workPhone: "+1-404-555-0198",
     linkedinUrl: "https://www.linkedin.com/in/marcus-tran",
     company: "Apex Janitorial Services",
-    industry: Industry.JANITORIAL_CLEANING,
-    industryDetail: "Focused on healthcare & lab cleanrooms",
+    industry: Industry.FACILITY_MAINTENANCE_COMPANIES,
+    industryDetail: IndustryDetail.JANITORIAL,
     leadSource: LeadSource.LINKEDIN,
-    leadStatus: LeadStatus.SDR_IN_PROCESS,
+    leadSourceCaptured: LeadSourceCaptured.LINKEDIN_SALES_NAVIGATOR,
+    leadStatus: LeadStatus.IN_PROCESS,
+    lifecycleStage: LifecycleStage.MARKETING_QUALIFIED_LEAD,
+    city: "Atlanta",
+    state: "GA",
+    country: "USA",
+    numberOfEmployees: 180,
     sequenceStep: 1,
   },
   {
     firstName: "Priya",
     lastName: "Natarajan",
+    jobTitle: "Facilities Manager",
     email: "priya.natarajan@coldchainhvac.com",
-    phone: "+1-214-555-0177",
+    workPhone: "+1-214-555-0177",
     linkedinUrl: "https://www.linkedin.com/in/priya-natarajan",
     company: "ColdChain HVAC Solutions",
-    industry: Industry.HVAC,
-    industryDetail: "Cold storage & refrigeration HVAC retrofits",
+    industry: Industry.FACILITY_MAINTENANCE_COMPANIES,
+    industryDetail: IndustryDetail.HVAC,
     leadSource: LeadSource.COLD_CALL,
+    leadSourceCaptured: LeadSourceCaptured.GOOGLE_MAPS,
     leadStatus: LeadStatus.EMAIL_SENT,
+    lifecycleStage: LifecycleStage.MARKETING_QUALIFIED_LEAD,
+    city: "Dallas",
+    state: "TX",
+    country: "USA",
+    numberOfEmployees: 95,
     sequenceStep: 1,
   },
   {
     firstName: "Wes",
     lastName: "Okafor",
+    jobTitle: "Chief Engineer",
     email: "wes.okafor@guardianfireprotect.com",
-    phone: "+1-702-555-0110",
+    workPhone: "+1-702-555-0110",
     linkedinUrl: "https://www.linkedin.com/in/wes-okafor",
     company: "Guardian Fire Protection",
-    industry: Industry.FIRE_PROTECTION,
-    industryDetail: "Sprinkler inspection & code compliance",
+    industry: Industry.FACILITY_MAINTENANCE_COMPANIES,
+    industryDetail: null,
     leadSource: LeadSource.REFERRAL,
+    leadSourceCaptured: LeadSourceCaptured.ONLINE_DIRECTORY,
     leadStatus: LeadStatus.CONNECTED,
+    lifecycleStage: LifecycleStage.SALES_QUALIFIED_LEAD,
+    city: "Las Vegas",
+    state: "NV",
+    country: "USA",
+    numberOfEmployees: 60,
     sequenceStep: 2,
   },
   {
     firstName: "Lena",
     lastName: "Grzywacz",
+    jobTitle: "Regional Facilities Lead",
     email: "lena.grzywacz@summitfacilitymgmt.com",
-    phone: "+1-503-555-0163",
+    workPhone: "+1-503-555-0163",
     linkedinUrl: "https://www.linkedin.com/in/lena-grzywacz",
     company: "Summit Facility Management",
-    industry: Industry.FACILITY_MANAGEMENT,
-    industryDetail: "Multi-site corporate campuses, PNW",
+    industry: Industry.INTEGRATED_FACILITY_MANAGEMENT,
+    industryDetail: IndustryDetail.COMMERCIAL_OFFICES,
     leadSource: LeadSource.EVENT,
-    leadStatus: LeadStatus.BAD_TIMING,
+    leadSourceCaptured: LeadSourceCaptured.LINKEDIN_SALES_NAVIGATOR,
+    leadStatus: LeadStatus.DEAD_LEAD,
+    lifecycleStage: LifecycleStage.LEAD,
+    city: "Portland",
+    state: "OR",
+    country: "USA",
+    numberOfEmployees: 310,
     sequenceStep: 3,
   },
   {
     firstName: "Ray",
     lastName: "Dominguez",
+    jobTitle: "Procurement Manager",
     email: "ray.dominguez@precisionmaintenance.com",
-    phone: "+1-619-555-0184",
+    workPhone: "+1-619-555-0184",
     linkedinUrl: "https://www.linkedin.com/in/ray-dominguez",
     company: "Precision Facility Maintenance",
-    industry: Industry.FACILITY_MAINTENANCE,
-    industryDetail: "Preventive maintenance contracts, retail chains",
+    industry: Industry.FACILITY_MAINTENANCE_COMPANIES,
+    industryDetail: IndustryDetail.RETAIL_CHAINS,
     leadSource: LeadSource.INBOUND,
-    leadStatus: LeadStatus.NOT_INTERESTED,
+    leadSourceCaptured: LeadSourceCaptured.GOOGLE_DORK,
+    leadStatus: LeadStatus.DEAD_LEAD,
+    lifecycleStage: LifecycleStage.LEAD,
+    city: "San Diego",
+    state: "CA",
+    country: "USA",
+    numberOfEmployees: 150,
     sequenceStep: 4,
   },
 ];
 
 async function main() {
-  console.log("Seeding contactOwner pool...");
-  const owners = buildSeedOwners(100);
-
   if (process.env.SKIP_DEMO_SEED === "true") {
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
       console.log(`Seeding admin login user (${process.env.ADMIN_EMAIL})...`);
@@ -136,6 +198,7 @@ async function main() {
   }
 
   console.log("Seeding sample contacts...");
+  const contactIds: string[] = [];
   for (let i = 0; i < SAMPLE_LEADS.length; i++) {
     const lead = SAMPLE_LEADS[i];
     const contact = await prisma.contact.upsert({
@@ -143,9 +206,11 @@ async function main() {
       update: {},
       create: {
         ...lead,
-        contactOwner: owners[i % owners.length],
+        country: lead.country,
+        contactOwner: TEAM_MEMBERS[i % TEAM_MEMBERS.length],
       },
     });
+    contactIds.push(contact.id);
 
     // Give each seeded contact a small, plausible touch history.
     const existingTouches = await prisma.touch.count({ where: { contactId: contact.id } });
@@ -192,6 +257,51 @@ async function main() {
           },
         });
       }
+
+      const lastTouch = await prisma.touch.findFirst({
+        where: { contactId: contact.id },
+        orderBy: { createdAt: "desc" },
+      });
+      const interestedTouch = await prisma.touch.findFirst({
+        where: { contactId: contact.id, outcome: { in: ["CONNECTED", "REPLIED"] } },
+        orderBy: { createdAt: "desc" },
+      });
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: {
+          lastContactDate: lastTouch?.createdAt ?? null,
+          lastInterestedReply: interestedTouch?.createdAt ?? null,
+        },
+      });
+    }
+  }
+
+  console.log("Seeding a sample deal and task...");
+  const connectedContact = await prisma.contact.findUnique({
+    where: { email: "wes.okafor@guardianfireprotect.com" },
+  });
+  if (connectedContact) {
+    const existingDeal = await prisma.deal.findFirst({ where: { contactId: connectedContact.id } });
+    if (!existingDeal) {
+      await prisma.deal.create({
+        data: {
+          contactId: connectedContact.id,
+          title: "Guardian Fire Protection — annual maintenance contract",
+          value: 42000,
+          stage: DealStage.QUALIFIED,
+        },
+      });
+    }
+    const existingTask = await prisma.task.findFirst({ where: { contactId: connectedContact.id } });
+    if (!existingTask) {
+      await prisma.task.create({
+        data: {
+          contactId: connectedContact.id,
+          title: "Send proposal follow-up",
+          dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          assignedTo: TeamMember.SAAD_AHMED,
+        },
+      });
     }
   }
 
@@ -217,7 +327,7 @@ async function main() {
     }
   }
 
-  console.log(`Done. Seeded ${SAMPLE_LEADS.length} contacts and ${owners.length} contact-owner emails.`);
+  console.log(`Done. Seeded ${SAMPLE_LEADS.length} contacts.`);
 }
 
 main()

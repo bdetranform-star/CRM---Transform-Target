@@ -1,29 +1,44 @@
-import type { LeadStatus, Industry, LeadSource } from "@prisma/client";
+import type {
+  LeadStatus,
+  Industry,
+  IndustryDetail,
+  LeadSource,
+  LeadSourceCaptured,
+  LifecycleStage,
+  TeamMember,
+  DealStage,
+} from "@prisma/client";
 
 export const LEAD_STATUS_ORDER: LeadStatus[] = [
+  "NEW_LEAD",
   "OPEN_PROSPECT",
-  "SDR_IN_PROCESS",
+  "IN_PROCESS",
   "EMAIL_SENT",
   "CONNECTED",
-  "BAD_TIMING",
-  "NOT_INTERESTED",
+  "OPEN_OPPORTUNITIES",
+  "CURRENT_CUSTOMER",
+  "CHURNED",
   "DEAD_LEAD",
-  "DUPLICATE",
 ];
 
 export const LEAD_STATUS_CONFIG: Record<
   LeadStatus,
   { label: string; bg: string; fg: string }
 > = {
+  NEW_LEAD: {
+    label: "New Lead",
+    bg: "var(--status-new-lead-bg)",
+    fg: "var(--status-new-lead-fg)",
+  },
   OPEN_PROSPECT: {
     label: "Open Prospect",
     bg: "var(--status-open-prospect-bg)",
     fg: "var(--status-open-prospect-fg)",
   },
-  SDR_IN_PROCESS: {
-    label: "SDR In Process",
-    bg: "var(--status-sdr-in-process-bg)",
-    fg: "var(--status-sdr-in-process-fg)",
+  IN_PROCESS: {
+    label: "In Process",
+    bg: "var(--status-in-process-bg)",
+    fg: "var(--status-in-process-fg)",
   },
   EMAIL_SENT: {
     label: "Email Sent",
@@ -35,37 +50,84 @@ export const LEAD_STATUS_CONFIG: Record<
     bg: "var(--status-connected-bg)",
     fg: "var(--status-connected-fg)",
   },
-  BAD_TIMING: {
-    label: "Bad Timing",
-    bg: "var(--status-bad-timing-bg)",
-    fg: "var(--status-bad-timing-fg)",
+  OPEN_OPPORTUNITIES: {
+    label: "Open Opportunities",
+    bg: "var(--status-open-opportunities-bg)",
+    fg: "var(--status-open-opportunities-fg)",
   },
-  NOT_INTERESTED: {
-    label: "Not Interested",
-    bg: "var(--status-not-interested-bg)",
-    fg: "var(--status-not-interested-fg)",
+  CURRENT_CUSTOMER: {
+    label: "Current Customer",
+    bg: "var(--status-current-customer-bg)",
+    fg: "var(--status-current-customer-fg)",
+  },
+  CHURNED: {
+    label: "Churned",
+    bg: "var(--status-churned-bg)",
+    fg: "var(--status-churned-fg)",
   },
   DEAD_LEAD: {
     label: "Dead Lead",
     bg: "var(--status-dead-lead-bg)",
     fg: "var(--status-dead-lead-fg)",
   },
-  DUPLICATE: {
-    label: "Duplicate",
-    bg: "var(--status-duplicate-bg)",
-    fg: "var(--status-duplicate-fg)",
-  },
+};
+
+export const LIFECYCLE_STAGE_ORDER: LifecycleStage[] = [
+  "SUBSCRIBER",
+  "LEAD",
+  "MARKETING_QUALIFIED_LEAD",
+  "SALES_QUALIFIED_LEAD",
+  "OPPORTUNITY",
+  "CUSTOMER",
+];
+
+export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
+  SUBSCRIBER: "Subscriber",
+  LEAD: "Lead",
+  MARKETING_QUALIFIED_LEAD: "Marketing Qualified Lead",
+  SALES_QUALIFIED_LEAD: "Sales Qualified Lead",
+  OPPORTUNITY: "Opportunity",
+  CUSTOMER: "Customer",
 };
 
 export const INDUSTRY_LABELS: Record<Industry, string> = {
-  IFM: "IFM",
-  FACILITY_MANAGEMENT: "Facility Management",
-  FACILITY_SERVICES: "Facility Services",
-  FACILITY_MAINTENANCE: "Facility Maintenance",
-  JANITORIAL_CLEANING: "Janitorial / Cleaning",
+  FACILITY_MAINTENANCE_COMPANIES: "Facility Maintenance Companies",
+  INTEGRATED_FACILITY_MANAGEMENT: "Integrated Facility Management",
+  MULTI_UNIT_RESTAURANT_FRANCHISE_GROUPS: "Multi-Unit Restaurant / Franchise Groups",
+  TRANSPORTATION_LOGISTICS: "Transportation & Logistics",
+  CONSTRUCTION_COMPANIES: "Construction Companies",
+  HEALTHCARE_FACILITIES: "Healthcare Facilities",
+};
+
+export const INDUSTRY_DETAIL_LABELS: Record<IndustryDetail, string> = {
   HVAC: "HVAC",
-  FIRE_PROTECTION: "Fire Protection",
-  OTHER: "Other",
+  ELECTRICAL: "Electrical",
+  PLUMBING: "Plumbing",
+  ROOFING: "Roofing",
+  HANDYMAN: "Handyman",
+  JANITORIAL: "Janitorial",
+  LANDSCAPING: "Landscaping",
+  PEST_CONTROL: "Pest Control",
+  SECURITY: "Security",
+  COMMERCIAL_OFFICES: "Commercial Offices",
+  INDUSTRIAL_MANUFACTURING: "Industrial & Manufacturing",
+  RETAIL_CHAINS: "Retail Chains",
+  EDUCATIONAL_CAMPUSES: "Educational Campuses",
+  QSR_FAST_FOOD: "QSR (Fast Food)",
+  CASUAL_DINING: "Casual Dining",
+  MULTI_BRAND_OPERATOR: "Multi-Brand Operator",
+  FREIGHT_BROKERAGE_3PL: "Freight Brokerage (3PL)",
+  ASSET_BASED_FLEET: "Asset-Based Fleet",
+  WAREHOUSING: "Warehousing",
+  LAST_MILE_DELIVERY: "Last-Mile Delivery",
+  COMMERCIAL: "Commercial",
+  RESIDENTIAL: "Residential",
+  INFRASTRUCTURE: "Infrastructure",
+  SPECIALTY_SUBCONTRACTOR: "Specialty Subcontractor",
+  URGENT_CARE_CHAINS: "Urgent Care Chains",
+  HOSPITALS: "Hospitals",
+  MULTI_SPECIALTY_CLINICS: "Multi-Specialty Clinics",
+  SENIOR_LIVING_FACILITIES: "Senior Living Facilities",
 };
 
 export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
@@ -77,6 +139,47 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   INBOUND: "Inbound",
   EVENT: "Event",
   OTHER: "Other",
+};
+
+export const LEAD_SOURCE_CAPTURED_LABELS: Record<LeadSourceCaptured, string> = {
+  LINKEDIN_SALES_NAVIGATOR: "LinkedIn Sales Navigator",
+  GOOGLE_MAPS: "Google Maps",
+  GOOGLE_DORK: "Google Dork",
+  ONLINE_DIRECTORY: "Online Directory",
+};
+
+export const TEAM_MEMBER_LABELS: Record<TeamMember, string> = {
+  SAAD_AHMED: "Saad Ahmed",
+  SHARMIN: "Sharmin",
+  MUHAMMAD_NAUMAN: "Muhammad Nauman",
+  SALMAN: "Salman",
+  SHAHMIR: "Shahmir",
+};
+
+export const TEAM_MEMBER_ORDER: TeamMember[] = [
+  "SAAD_AHMED",
+  "SHARMIN",
+  "MUHAMMAD_NAUMAN",
+  "SALMAN",
+  "SHAHMIR",
+];
+
+export const DEAL_STAGE_ORDER: DealStage[] = [
+  "NEW",
+  "QUALIFIED",
+  "PROPOSAL_SENT",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
+];
+
+export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
+  NEW: "New",
+  QUALIFIED: "Qualified",
+  PROPOSAL_SENT: "Proposal Sent",
+  NEGOTIATION: "Negotiation",
+  WON: "Won",
+  LOST: "Lost",
 };
 
 export const SEQUENCE_STEPS = [
