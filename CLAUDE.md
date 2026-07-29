@@ -33,7 +33,7 @@ what changed and why.
   first admin login (email + password) when the `User` table is empty. See
   "Data layer" below for how reuse is prevented.
 - `app/(app)/` — route group for everything behind auth, sharing
-  `app/(app)/layout.tsx` (navy `Sidebar` + `Topbar` shell). The sidebar's
+  `app/(app)/layout.tsx` (green `Sidebar` + `Topbar` shell). The sidebar's
   primary nav, top to bottom (`components/sidebar.tsx`'s `NAV_ITEMS`),
   mirrors HubSpot's own top-to-bottom order:
   - `/` — **Home**: Board (Kanban) view, the default view
@@ -427,11 +427,11 @@ explicitly rather than left to fail at migration time.
   re-deriving them, so the Board, Table, Timeline, and Dashboard stay visually
   consistent (this is also where the CSS custom properties defined in
   `app/globals.css` — `--status-*-bg/fg`, `--channel-*` — are consumed).
-- **Design tokens** live in `app/globals.css` as CSS custom properties:
-  `--navy*` (sidebar/brand), `--accent-warm*` (primary actions/active
-  states — mapped to shadcn's `--primary`), `--status-*` (pill backgrounds),
-  `--channel-*` (per-channel brand colors). Change the palette there, not by
-  hunting through components.
+- **Design tokens** live in `app/globals.css` as CSS custom properties, sampled
+  directly from `public/logo.png` (green `#5fce81` background, white `#ffffff`
+  "T", navy/teal `#14435f` "I", near-black `#0b0d0c` accent square) — see
+  "Branding" below for the full palette and the contrast reasoning behind it.
+  Change the palette there, not by hunting through components.
 - **shadcn/ui components** (`components/ui/`) were hand-written (not
   generated via the `shadcn` CLI — its registry fetch is blocked in this
   environment's network policy) to match the standard shadcn source/API, so
@@ -441,6 +441,62 @@ explicitly rather than left to fail at migration time.
   runtime consts* in `lib/` instead: e.g. `SAVED_VIEWS` (the saved-view
   definitions) lives in `lib/saved-views.ts`, not `app/actions/contacts.ts`,
   specifically because a plain exported object literal isn't allowed there.
+
+## Branding
+
+A 2026 rebrand replaced the original navy/orange HubSpot-style palette with
+one sampled directly from `public/logo.png`. `components/logo.tsx` renders
+that file if present, else falls back to a "TT" placeholder in the new
+colors — same zero-code-swap pattern as before.
+
+- **Logo asset**: `public/logo.png` is a tight crop around just the T/I mark
+  (~1.275:1 aspect ratio), not the original square export — the source file
+  has a lot of green padding around a much smaller centered glyph, and
+  rendering that full square at sidebar-icon size would have put mostly flat
+  green (indistinguishable from the now-green sidebar background) in a tiny
+  32-40px box. `Logo` renders it by height (`h-9 w-auto`), not forced into a
+  square, so it stays undistorted.
+- **Sampled colors**: green `#5fce81` (logo background), white `#ffffff` (the
+  "T"), navy/teal `#14435f` (the "I"), near-black `#0b0d0c` (the accent
+  square) — pulled from the actual PNG pixel data, not eyeballed.
+- **Text-on-green uses navy, not white.** White directly on the logo's green
+  is 1.98:1 contrast — fails WCAG AA outright. Navy on the same green is
+  5.32:1 (passes). Every place text or an icon sits on the green brand color
+  (sidebar nav labels, the login/setup page headings, primary-button labels)
+  uses navy for exactly this reason; white is reserved for text on navy
+  (10.51:1) — the sidebar's active-nav-item state and the "teal" button
+  variant.
+- **Token map** (`app/globals.css`): `--brand`/`--brand-foreground` (green /
+  navy-on-green — sidebar and login/setup backgrounds, `--primary`),
+  `--brand-muted` (a slightly deeper green — sidebar hover state, still
+  4.57:1 with navy text), `--brand-border` (translucent black — subtle
+  dividers within the green sidebar chrome), `--accent-teal`/
+  `--accent-teal-foreground` (navy / white-on-navy — links, headers, the
+  `teal` button variant, focus rings via `--ring`), `--status-*` (pill
+  backgrounds/foregrounds), `--channel-*` (per-channel colors).
+- **Status pills** (`lib/status-config.ts`'s `LEAD_STATUS_CONFIG`, values in
+  `app/globals.css`): recolored from the old blue/purple/yellow/orange set to
+  tints and shades built from the brand green, navy, and black-derived
+  neutrals, ordered light-to-deep along the pipeline (light neutral →
+  light navy-tint → light green-tint → deeper navy/green/teal-blend tints →
+  gray for the two terminal negative states). Every bg/fg pair is >= 4.5:1
+  (computed via the WCAG relative-luminance formula, not eyeballed).
+- **Dashboard chart colors** (`lib/chart-palette.ts`): `CATEGORICAL_PALETTE`
+  keeps the dataviz skill's validated 8-hue reference ramp (re-validated as a
+  set via its `validate_palette.js` after the swap — all hard gates pass),
+  with the brand green swapped into the lead slot instead of hand-deriving a
+  new ramp from scratch. `SEQUENTIAL_BRAND` (was `SEQUENTIAL_BLUE`) is brand
+  green, used for the single-series daily line charts.
+- **Deliberately left unchanged**: `lib/channel-config.tsx`'s `CHANNEL_CONFIG`
+  colors represent real per-channel brand identities (e.g. LinkedIn's actual
+  brand blue) independent of the CRM's own theme, so they weren't recolored
+  to fit the new palette — except SMS, which had reused the old orange
+  accent-warm hex verbatim and got its own violet now that orange is retired
+  from the app entirely.
+- **The "navy" button variant was renamed `teal`** (`bg-accent-teal
+  text-accent-teal-foreground`) since it was unused anywhere before this
+  rebrand and now represents the navy/teal secondary-accent role rather than
+  the old navy-as-primary-brand role.
 
 ## Database / deployment
 
