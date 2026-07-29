@@ -127,23 +127,63 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     runtime const — see the "use server" convention note below): "All
     contacts" (no filter), "Open opportunities"
     (`leadStatus = OPEN_OPPORTUNITIES`), "Need follow up"
-    (`leadStatus IN (NEW_LEAD, OPEN_PROSPECT, IN_PROCESS, EMAIL_SENT)` — a
-    judgment call for "needs another touch before it's qualified or dead"),
-    and "Initial conversation in progress" (`leadStatus = CONNECTED`). Each
-    tab shows a live count from `getSavedViewCounts()`. Users can also save
-    the *current* filter/search state as a **custom view** via the "+"
-    button; custom views are client-only, persisted to `localStorage`
-    (`lib/saved-views-storage.ts`), not a DB table — this is intentionally
-    lighter-weight than HubSpot's real saved-views feature.
+    (`leadStatus IN (OPEN_PROSPECT, IN_PROCESS, EMAIL_SENT)` — a judgment
+    call for "needs another touch before it's qualified or dead"; `NEW_LEAD`
+    is deliberately excluded since a lead that's never been touched yet
+    isn't "following up" on anything), and "Initial conversation in
+    progress" (`leadStatus = CONNECTED`). Each tab shows a live count from
+    `getSavedViewCounts()`. Each preset's base filter also renders as a
+    locked, non-removable chip (with a lock icon) in the filters row —
+    `lib/saved-views.ts`'s `SAVED_VIEW_LOCKED_FILTER`, which must be kept in
+    sync with `savedViewWhere()` in `app/actions/contacts.ts` by hand since
+    one is a display-only `ContactFilter` and the other is the real Prisma
+    `WHERE` fragment. Users can also save the *current* filter/search state
+    as a **custom view** via the "+" button; custom views are client-only,
+    persisted to `localStorage` (`lib/saved-views-storage.ts`), not a DB
+    table — this is intentionally lighter-weight than HubSpot's real
+    saved-views feature, and (unlike the 4 presets) a custom view's filters
+    are all regular, removable/editable filters rather than a locked base.
   - **Advanced filters** (`advanced-filters-panel.tsx`) — a right-side
-    `Sheet` ("All filters" + close, "Add filter" rows, "Clear all"). Field
-    definitions (type, label, operators, enum options where relevant) live in
-    `lib/contact-filters.ts` (`FILTERABLE_FIELDS`); each field's applicable
-    operators depend on its type (`string`: contains/equals; `enum`:
-    equals/one of; `number`: equals/gt/lt/between; `date`:
-    before/after/between). Applied filters render as removable chips above
-    the table and are serialized into the `?filters=` URL param as JSON,
-    turned into a Prisma `WHERE` by `buildWhereFromFilters()`.
+    `Sheet` matching HubSpot's own filter-builder pattern: "Add filter" opens
+    a searchable property picker (`FILTERABLE_FIELDS`, filtered by label as
+    you type); picking one shows an operator dropdown scoped to that
+    property's type, then the matching value input. Field definitions (type,
+    label, operators, enum options) live in `lib/contact-filters.ts`, one
+    entry per filterable `Contact` property:
+    - `string` (First/Last Name, Job Title, Email, Company, Website/LinkedIn
+      URL, Street Address, City, State, Country, Zip Code): contains / is
+      equal to / is known / is unknown.
+    - `phone` (Work/Cell Phone Number): contains / is known / is unknown —
+      no "is equal to", since exact phone-format matching isn't useful.
+    - `enum` (Lifecycle Stage, Lead Status, Industry, Industry Detail,
+      Contact Owner, Lead Source, Lead Source Captured): is any of / is none
+      of, each backed by a searchable multi-select checklist of the enum's
+      real values (`SearchableChecklist`).
+    - `number` (Website Traffic, Number of Employees): equals / greater than
+      / less than / between (two inputs).
+    - `date` (Last Interested Reply, Last Contact Date, Created Date): is
+      after / is before / is between (two date inputs) / in the last N days
+      (relative, computed from `new Date()` at query time via
+      `date-fns.subDays`).
+
+    A filter's value lives in `ContactFilter.value` (single scalar),
+    `.values` (the multi-select operators), or `.valueMin`/`.valueMax`
+    (between) — never all three, which is why `isFilterComplete()` and
+    `buildWhereFromFilters()` both switch on the operator, not just the
+    field type, to know which shape to expect. Applied filters render as
+    removable chips above the table (AND-combined only — no OR/grouping,
+    per spec) and are serialized into the `?filters=` URL param as JSON.
+    Both `app/(app)/contacts/page.tsx` (parsing the URL param) and
+    `getContactsTable()` itself (a Server Action is directly callable,
+    independent of the page that normally renders it) re-validate every
+    filter against `contactFilterSchema` before it reaches
+    `buildWhereFromFilters()` — the schema's `.refine()`s catch not just
+    malformed shapes but a field/operator mismatch a hand-crafted request
+    could send (e.g. `between` on an `enum` field). `buildWhereFromFilters()`
+    itself also drops `is_any_of`/`is_none_of` values that aren't among the
+    field's real enum options, rather than trusting them straight into a
+    Prisma `in`/`notIn` — an invalid enum literal reaching Postgres directly
+    would throw, not just no-op.
 - **Contact detail panel** (`components/contact-detail/`) — a `Sheet`
   (slide-over from the right, not a centered dialog) that lazy-fetches the
   full contact + touch history when opened. Reused by the Board, Table, and
@@ -446,8 +486,9 @@ explicitly rather than left to fail at migration time.
 
 A 2026 rebrand replaced the original navy/orange HubSpot-style palette with
 one sampled directly from `public/logo.png`. `components/logo.tsx` renders
-that file if present, else falls back to a "TT" placeholder in the new
-colors — same zero-code-swap pattern as before.
+that file unconditionally — it's a committed, version-controlled asset, not
+something optionally dropped in post-deploy, so there's no presence check or
+placeholder fallback to keep in sync.
 
 - **Logo asset**: `public/logo.png` is a tight crop around just the T/I mark
   (~1.275:1 aspect ratio), not the original square export — the source file
@@ -456,6 +497,15 @@ colors — same zero-code-swap pattern as before.
   green (indistinguishable from the now-green sidebar background) in a tiny
   32-40px box. `Logo` renders it by height (`h-9 w-auto`), not forced into a
   square, so it stays undistorted.
+- **Why no `fs.existsSync` check**: an earlier version of `Logo` conditionally
+  rendered the image only if `fs.existsSync` found `public/logo.png` at
+  request time, falling back to a "TT" placeholder otherwise. That worked in
+  local dev but silently failed on Vercel — serverless functions only bundle
+  files an import-tracer (`@vercel/nft`) can statically detect, and a
+  dynamically-built `path.join(process.cwd(), ...)` string isn't traceable,
+  so the check returned `false` in production even though the file was
+  deployed and served correctly by the CDN. Since the logo is now a
+  permanent asset, `Logo` just renders it directly instead.
 - **Sampled colors**: green `#5fce81` (logo background), white `#ffffff` (the
   "T"), navy/teal `#14435f` (the "I"), near-black `#0b0d0c` (the accent
   square) — pulled from the actual PNG pixel data, not eyeballed.
