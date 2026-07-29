@@ -53,7 +53,7 @@ export function BulkActionBar({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-[var(--accent-warm)]/30 bg-[color-mix(in_srgb,var(--accent-warm)_6%,white)] px-4 py-2.5">
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--accent-teal)]/30 bg-[color-mix(in_srgb,var(--accent-teal)_6%,white)] px-4 py-2.5">
       <span className="text-sm font-medium">{selectedIds.length} selected</span>
       <div className="ml-auto flex items-center gap-2">
         <Select value={status} onValueChange={setStatus}>

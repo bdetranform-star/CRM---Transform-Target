@@ -15,9 +15,9 @@ export function SequenceProgress({ sequenceStep }: { sequenceStep: number }) {
               <div
                 className={cn(
                   "flex size-7 items-center justify-center rounded-full border text-xs font-medium",
-                  isDone && "border-[var(--accent-warm)] bg-[var(--accent-warm)] text-white",
+                  isDone && "border-[var(--accent-teal)] bg-[var(--accent-teal)] text-white",
                   isCurrent &&
-                    "border-[var(--accent-warm)] text-[var(--accent-warm)] bg-white ring-2 ring-[var(--accent-warm)]/20",
+                    "border-[var(--accent-teal)] text-[var(--accent-teal)] bg-white ring-2 ring-[var(--accent-teal)]/20",
                   !isDone && !isCurrent && "border-border bg-white text-muted-foreground"
                 )}
               >
@@ -36,7 +36,7 @@ export function SequenceProgress({ sequenceStep }: { sequenceStep: number }) {
               <div
                 className={cn(
                   "mx-1 h-px flex-1",
-                  sequenceStep > s.step ? "bg-[var(--accent-warm)]" : "bg-border"
+                  sequenceStep > s.step ? "bg-[var(--accent-teal)]" : "bg-border"
                 )}
               />
             )}

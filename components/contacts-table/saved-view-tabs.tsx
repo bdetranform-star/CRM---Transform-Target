@@ -93,7 +93,7 @@ export function SavedViewTabs({
               className={cn(
                 "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "border-[var(--accent-warm)] text-[var(--accent-warm)]"
+                  ? "border-[var(--accent-teal)] text-[var(--accent-teal)]"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
@@ -111,7 +111,7 @@ export function SavedViewTabs({
             className={cn(
               "group flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               activeCustomId === view.id
-                ? "border-[var(--accent-warm)] text-[var(--accent-warm)]"
+                ? "border-[var(--accent-teal)] text-[var(--accent-teal)]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >

@@ -3,7 +3,7 @@
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { SEQUENTIAL_BLUE } from "@/lib/chart-palette";
+import { SEQUENTIAL_BRAND } from "@/lib/chart-palette";
 
 export function DailyLineChart({
   title,
@@ -37,7 +37,7 @@ export function DailyLineChart({
             <Line
               type="monotone"
               dataKey="count"
-              stroke={SEQUENTIAL_BLUE}
+              stroke={SEQUENTIAL_BRAND}
               strokeWidth={2}
               dot={false}
             />

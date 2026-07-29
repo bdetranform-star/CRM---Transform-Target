@@ -24,7 +24,7 @@ export function BoardColumn({
       ref={setNodeRef}
       className={cn(
         "flex h-full w-72 shrink-0 flex-col rounded-lg border border-border bg-secondary/40 transition-colors",
-        isOver && "border-[var(--accent-warm)] bg-[color-mix(in_srgb,var(--accent-warm)_8%,white)]"
+        isOver && "border-[var(--accent-teal)] bg-[color-mix(in_srgb,var(--accent-teal)_8%,white)]"
       )}
     >
       <div className="flex items-center justify-between border-b border-border px-3 py-2.5">

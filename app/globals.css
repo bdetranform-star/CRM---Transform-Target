@@ -3,63 +3,82 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #1a2233;
+  --foreground: #14435f;
   --card: #ffffff;
-  --card-foreground: #1a2233;
+  --card-foreground: #14435f;
   --popover: #ffffff;
-  --popover-foreground: #1a2233;
+  --popover-foreground: #14435f;
 
-  /* Navy — sidebar / brand */
-  --navy: #101d3d;
-  --navy-foreground: #ffffff;
-  --navy-muted: #1c2c52;
-  --navy-border: #2a3a63;
+  /*
+   * Brand palette — sampled directly from public/logo.png:
+   *   green #5fce81 (logo background), white #ffffff (the "T"),
+   *   navy/teal #14435f (the "I"), near-black #0b0d0c (the accent square).
+   *
+   * White text directly on the green fails WCAG contrast (1.98:1), so navy
+   * — not white — is used as the readable text/icon color on green
+   * surfaces (5.32:1, passes AA). Navy-on-white is 10.51:1.
+   */
 
-  /* Warm accent — primary actions, active states */
-  --accent-warm: #e8763a;
-  --accent-warm-foreground: #ffffff;
-  --accent-warm-hover: #d4652c;
+  /* Brand green — sidebar / auth screens (primary/dominant, matches the logo bg) */
+  --brand: #5fce81;
+  --brand-foreground: #14435f;
+  --brand-muted: #58bf78;
+  --brand-border: rgba(11, 13, 12, 0.16);
 
-  --primary: var(--accent-warm);
-  --primary-foreground: var(--accent-warm-foreground);
+  /* Navy/teal — secondary accent: links, headers, secondary buttons, active/focus states */
+  --accent-teal: #14435f;
+  --accent-teal-foreground: #ffffff;
+  --accent-teal-hover: #12384e;
+
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: #f1f4f9;
-  --secondary-foreground: #1a2233;
+  --secondary-foreground: #14435f;
   --muted: #f1f4f9;
   --muted-foreground: #64748b;
   --accent: #f1f4f9;
-  --accent-foreground: #1a2233;
+  --accent-foreground: #14435f;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: var(--accent-warm);
+  --ring: var(--accent-teal);
   --radius: 0.625rem;
 
-  /* Status pill colors — soft backgrounds matching each of the 9 LeadStatus stages */
-  --status-new-lead-bg: #f1f5f9;
-  --status-new-lead-fg: #334155;
-  --status-open-prospect-bg: #eef2ff;
-  --status-open-prospect-fg: #4338ca;
-  --status-in-process-bg: #fef9c3;
-  --status-in-process-fg: #854d0e;
-  --status-email-sent-bg: #e0f2fe;
-  --status-email-sent-fg: #0369a1;
-  --status-connected-bg: #dcfce7;
-  --status-connected-fg: #15803d;
-  --status-open-opportunities-bg: #ffedd5;
-  --status-open-opportunities-fg: #c2410c;
-  --status-current-customer-bg: #d1fae5;
-  --status-current-customer-fg: #047857;
-  --status-churned-bg: #fee2e2;
-  --status-churned-fg: #b91c1c;
-  --status-dead-lead-bg: #f3f4f6;
-  --status-dead-lead-fg: #6b7280;
+  /*
+   * Status pill colors — soft tints/shades built from the brand green, navy,
+   * and black-derived neutrals (not the old blue/purple/yellow/orange set),
+   * ordered light-to-deep along the pipeline. Every bg/fg pair below is
+   * >= 4.5:1 contrast (verified against WCAG's relative-luminance formula).
+   */
+  --status-new-lead-bg: #f3f3f3;
+  --status-new-lead-fg: #14435f;
+  --status-open-prospect-bg: #e8ecef;
+  --status-open-prospect-fg: #14435f;
+  --status-in-process-bg: #dff5e6;
+  --status-in-process-fg: #39774c;
+  --status-email-sent-bg: #cbd6dc;
+  --status-email-sent-fg: #133b53;
+  --status-connected-bg: #bfebcd;
+  --status-connected-fg: #2d5a3b;
+  --status-open-opportunities-bg: #c8ded7;
+  --status-open-opportunities-fg: #2a5d4d;
+  --status-current-customer-bg: #a2e3b6;
+  --status-current-customer-fg: #316441;
+  --status-churned-bg: #e2e2e2;
+  --status-churned-fg: #4b4b4b;
+  --status-dead-lead-bg: #cecfce;
+  --status-dead-lead-fg: #0b0d0c;
 
-  /* Channel colors — consistent per-channel identity, used in table/timeline/dashboard */
+  /* Channel colors — real per-channel brand identities (LinkedIn's own blue,
+     etc.), deliberately left independent of the CRM's own brand re-theme.
+     SMS previously reused the old orange accent-warm hex; since that color
+     is retired, SMS now gets its own violet so no channel accidentally
+     carries a stale theme color. */
   --channel-email: #0284c7;
   --channel-linkedin: #0a66c2;
   --channel-call: #16a34a;
-  --channel-sms: #e8763a;
+  --channel-sms: #4a3aa7;
   --channel-note: #64748b;
 }
 
@@ -70,10 +89,12 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-navy: var(--navy);
-  --color-navy-foreground: var(--navy-foreground);
-  --color-navy-muted: var(--navy-muted);
-  --color-navy-border: var(--navy-border);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-border: var(--brand-border);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-teal-foreground: var(--accent-teal-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);

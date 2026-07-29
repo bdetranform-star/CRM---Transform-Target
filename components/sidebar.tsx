@@ -56,8 +56,8 @@ function NavLink({
       className={cn(
         "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         isActive
-          ? "bg-[var(--accent-warm)] text-white"
-          : "text-white/70 hover:bg-navy-muted hover:text-white"
+          ? "bg-[var(--accent-teal)] text-white"
+          : "text-brand-foreground hover:bg-brand-muted hover:text-brand-foreground"
       )}
     >
       <Icon className="size-4 shrink-0" />
@@ -72,12 +72,12 @@ export function Sidebar({ logo }: { logo?: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(isMoreActive);
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col bg-navy text-navy-foreground">
+    <aside className="flex h-screen w-60 shrink-0 flex-col bg-brand text-brand-foreground">
       <div className="flex items-center gap-2.5 px-5 py-5">
         {logo}
         <div>
           <p className="text-sm font-semibold tracking-wide">Transform Targets</p>
-          <p className="text-xs text-white/50">CRM</p>
+          <p className="text-xs font-medium text-brand-foreground">CRM</p>
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 px-3">
@@ -97,15 +97,15 @@ export function Sidebar({ logo }: { logo?: ReactNode }) {
           className={cn(
             "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
             isMoreActive && !moreOpen
-              ? "bg-[var(--accent-warm)] text-white"
-              : "text-white/70 hover:bg-navy-muted hover:text-white"
+              ? "bg-[var(--accent-teal)] text-white"
+              : "text-brand-foreground hover:bg-brand-muted hover:text-brand-foreground"
           )}
         >
           <ChevronDown className={cn("size-4 shrink-0 transition-transform", moreOpen && "rotate-180")} />
           More
         </button>
         {moreOpen && (
-          <div className="ml-2 space-y-0.5 border-l border-navy-border pl-2">
+          <div className="ml-2 space-y-0.5 border-l border-brand-border pl-2">
             {MORE_ITEMS.map((item) => (
               <NavLink
                 key={item.href}
@@ -118,7 +118,7 @@ export function Sidebar({ logo }: { logo?: ReactNode }) {
           </div>
         )}
       </nav>
-      <div className="border-t border-navy-border px-3 py-3 text-[11px] text-white/40">
+      <div className="border-t border-brand-border px-3 py-3 text-[11px] font-medium text-brand-foreground">
         IFM / Facility Maintenance outreach
       </div>
     </aside>
