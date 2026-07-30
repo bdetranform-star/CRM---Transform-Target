@@ -179,9 +179,16 @@ model Contact {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  touches Touch[]
-  deals   Deal[]
-  tasks   Task[]
+  /// Cached AI-generated summary for the contact detail page's Insights
+  /// panel — regenerated only on manual "Regenerate" click, not on every
+  /// page view, to control Anthropic API cost. Both fields are set together.
+  aiInsightsSummary     String?   @db.Text
+  aiInsightsGeneratedAt DateTime?
+
+  touches      Touch[]
+  deals        Deal[]
+  tasks        Task[]
+  chatMessages ContactChatMessage[]
 
   @@index([leadStatus])
   @@index([lifecycleStage])
@@ -189,6 +196,25 @@ model Contact {
   @@index([contactOwner])
   @@index([sequenceStep])
   @@index([company])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+/// Per-contact AI chat thread ("Ask a question" on the contact detail page's
+/// Insights panel) — scoped to a single contact's properties + touch history,
+/// persisted so it survives across visits to that contact's page.
+model ContactChatMessage {
+  id        String   @id @default(uuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  role      ChatRole
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
 }
 
 model Touch {
