@@ -30,42 +30,10 @@ import {
   type FilterFieldDef,
   type FilterOperator,
 } from "@/lib/contact-filters";
+import { PropertyPicker } from "./property-picker";
 
 function emptyFilter(): ContactFilter {
   return { field: "", operator: "contains" };
-}
-
-/** Searchable single-select list — used to pick which property to filter on. */
-function PropertyPicker({ onSelect }: { onSelect: (field: string) => void }) {
-  const [query, setQuery] = useState("");
-  const filtered = FILTERABLE_FIELDS.filter((f) => f.label.toLowerCase().includes(query.toLowerCase()));
-
-  return (
-    <div className="overflow-hidden rounded-md border border-border">
-      <Input
-        placeholder="Search properties..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        autoFocus
-        className="rounded-none border-0 border-b border-border focus-visible:ring-0"
-      />
-      <div className="max-h-56 overflow-y-auto p-1">
-        {filtered.map((f) => (
-          <button
-            key={f.field}
-            type="button"
-            onClick={() => onSelect(f.field)}
-            className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-secondary"
-          >
-            {f.label}
-          </button>
-        ))}
-        {filtered.length === 0 && (
-          <p className="px-2 py-3 text-center text-xs text-muted-foreground">No matching properties.</p>
-        )}
-      </div>
-    </div>
-  );
 }
 
 /** Searchable multi-select checklist — used by "is any of" / "is none of". */
@@ -344,7 +312,7 @@ export function AdvancedFiltersPanel({
                       </div>
 
                       {isPicking ? (
-                        <PropertyPicker onSelect={(field) => selectField(index, field)} />
+                        <PropertyPicker fields={FILTERABLE_FIELDS} onSelect={(field) => selectField(index, field)} />
                       ) : (
                         <div className="flex flex-col gap-2">
                           <Select

@@ -18,6 +18,7 @@ import {
 import { LEAD_STATUS_ORDER } from "@/lib/status-config";
 import { TEAM_MEMBERS } from "@/lib/contact-owners";
 import { buildWhereFromFilters, contactFilterSchema, type ContactFilter } from "@/lib/contact-filters";
+import { bulkEditContactsSchema, buildBulkUpdateData } from "@/lib/contact-bulk-edit";
 import { SAVED_VIEWS } from "@/lib/saved-views";
 
 export async function getBoardContacts() {
@@ -276,4 +277,26 @@ export async function bulkDeleteContacts(input: unknown) {
   await prisma.contact.deleteMany({ where: { id: { in: ids } } });
   revalidatePath("/");
   revalidatePath("/contacts");
+}
+
+/** Bulk-sets one or more properties across every selected contact. */
+export async function bulkUpdateContactProperties(input: unknown): Promise<number> {
+  await requireAuth();
+  const { ids, changes } = bulkEditContactsSchema.parse(input);
+
+  const data = buildBulkUpdateData(changes);
+  // buildBulkUpdateData() silently drops any invalid/incomplete change, so a
+  // hand-crafted request with no valid changes left could otherwise reach
+  // Prisma as an empty `data: {}` — updateMany() with no fields still bumps
+  // every matched row's `@updatedAt`, a real (if silent) side effect on
+  // records the caller never actually asked to touch.
+  if (Object.keys(data).length === 0) {
+    throw new Error("No valid changes to apply.");
+  }
+
+  const result = await prisma.contact.updateMany({ where: { id: { in: ids } }, data });
+  revalidatePath("/");
+  revalidatePath("/contacts");
+  revalidatePath("/companies");
+  return result.count;
 }

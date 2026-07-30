@@ -216,6 +216,43 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       (not 0, not all 6), and "Clear all" restored all 6 — confirming the
       chip-removal and AND-combination logic were already correct before
       this audit; no fix was needed.
+  - **Bulk edit** (`bulk-action-bar.tsx`'s "Bulk edit" button, `bulk-edit-dialog.tsx`)
+    — a full property editor for 1+ selected rows, alongside (not replacing)
+    the existing "Change status to... / Apply" quick action and "Delete
+    selected", since the status shortcut is still the fastest path for the
+    single most common bulk op. Supports **multiple properties in one
+    operation**: each row in the dialog is a property (picked via the same
+    `PropertyPicker` component the Advanced Filters panel uses — extracted
+    to `components/contacts-table/property-picker.tsx` so both flows share
+    one picker, parameterized by field list — filtered to hide properties
+    already used in another row of the *same* bulk edit, since setting one
+    field twice in one operation is never meaningful) + a type-appropriate
+    value input (dropdown for enum, text for string, number input for
+    number, Yes/No dropdown for the one boolean field, `smsOptOut`) from
+    `lib/contact-bulk-edit.ts`'s `BULK_EDIT_FIELDS`. That field list is
+    deliberately a subset of every Contact column: `email` is excluded
+    (unique constraint — setting the same email on 2+ rows in one
+    `updateMany` would violate it), `firstName`/`lastName` are excluded
+    (per-person identity; the same name across a batch of different people
+    is never actually intended), and `avatarUrl`/`id`/`createdAt`/
+    `updatedAt`/`lastContactDate`/`lastInterestedReply`/`aiInsightsSummary`/
+    `aiInsightsGeneratedAt` are excluded as system-managed/computed. Clicking
+    "Review changes" moves to a second stage in the same dialog listing
+    each pending change in plain language ("Contact Owner → Shahmir") plus
+    the affected count, then "Apply to N contacts" is the actual commit —
+    two distinct steps, not a single click, since this can touch many
+    records at once. `bulkUpdateContactProperties()` (`app/actions/
+    contacts.ts`) re-validates every change server-side via
+    `bulkEditContactsSchema`/`buildBulkUpdateData()` (same "don't trust a
+    hand-crafted request" posture as `buildWhereFromFilters()`: an unknown
+    field, invalid enum literal, or non-numeric string is dropped rather
+    than reaching Prisma) and explicitly rejects an all-invalid change set
+    before calling `updateMany()` — an empty `data: {}` would otherwise
+    still be a "successful" no-op update that silently bumps every selected
+    row's `@updatedAt` timestamp. Applying keeps the current filter/search/
+    sort/page in place (the same `router.refresh()` + clear-selection
+    pattern the existing bulk actions already used), so the user doesn't
+    lose their place in the table.
 - **Contact detail page** (`/contacts/[id]`, `components/contact-detail/
   contact-detail-page-view.tsx`) — a full page (not a slide-over) that's the
   only way to view or edit an existing contact; the Board, Contacts table,
@@ -350,6 +387,31 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   every contact at that company agrees (`rollUp<T>()` helper) — otherwise the
   rolled-up field shows blank rather than picking one contact's value
   arbitrarily. Clicking a company links to `/contacts` pre-filtered to it.
+  - **Bulk edit** (checkboxes on `CompaniesView`, `company-bulk-edit-dialog.tsx`)
+    — select 1+ companies and bulk-set **Industry** or **Contact Owner**
+    across every `Contact` under those company names via
+    `bulkUpdateCompanyProperty()` (`companyNames` → a single scoped
+    `updateMany({ where: { company: { in: companyNames } } })`, not by id).
+    Deliberately **single-property-at-a-time**, unlike the Contacts table's
+    multi-property `BulkEditDialog` above: a "company" here is really a
+    group of Contact rows sharing a company name rather than its own
+    record, so the two properties named in spec (Industry, Contact Owner)
+    cover the meaningful case without needing the same multi-row picker —
+    if more company-level properties need bulk-editing later, `FIELD_META`
+    in `company-bulk-edit-dialog.tsx` is a two-line addition away from
+    supporting them, since `getCompanies()` already rolls up every
+    Contact field the same way. Since `industry`/`contactOwner` are
+    required, non-nullable Contact columns, `getCompanies()`'s `rollUp()`
+    returning `null` for either one can only mean the company's contacts
+    currently disagree (not "all empty," unlike the address/employee-count
+    roll-ups) — surfaced to the picker as an explicit `industryMixed`/
+    `contactOwnerMixed` flag rather than left for the caller to infer, and
+    shown before applying as "N of M selected companies currently have
+    mixed [Property] values ... this will set all of them to the same
+    value," plus a per-company list of each one's current value or "Mixed"
+    so nothing is applied blind. Same two-stage review/confirm pattern as
+    the Contacts Bulk Edit dialog for visual and interaction consistency
+    between the two.
 - **Deals** (`prisma` `Deal` model, `app/actions/deals.ts`,
   `components/deals/`) — a `Contact` can have many `Deal`s (`title`, optional
   `value`, `stage` enum `NEW → QUALIFIED → PROPOSAL_SENT → NEGOTIATION →

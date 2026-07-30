@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { PencilLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { bulkUpdateStatus, bulkDeleteContacts } from "@/app/actions/contacts";
 import { LEAD_STATUS_CONFIG } from "@/lib/status-config";
+import { BulkEditDialog } from "./bulk-edit-dialog";
 
 export function BulkActionBar({
   selectedIds,
@@ -23,6 +25,7 @@ export function BulkActionBar({
 }) {
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   async function handleStatusChange() {
     if (!status) return;
@@ -71,10 +74,21 @@ export function BulkActionBar({
         <Button size="sm" disabled={!status || busy} onClick={handleStatusChange}>
           Apply
         </Button>
+        <Button size="sm" variant="outline" onClick={() => setBulkEditOpen(true)}>
+          <PencilLine className="size-4" />
+          Bulk edit
+        </Button>
         <Button size="sm" variant="destructive" disabled={busy} onClick={handleDelete}>
           Delete selected
         </Button>
       </div>
+
+      <BulkEditDialog
+        selectedIds={selectedIds}
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        onApplied={onDone}
+      />
     </div>
   );
 }
