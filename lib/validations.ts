@@ -168,6 +168,21 @@ export const contactCreateSchema = z.object({
 
 export const contactUpdateSchema = contactCreateSchema.partial().extend({
   id: z.string().uuid(),
+  // .partial() wraps every field in .optional(), but a field that already
+  // has .default() still has that default applied when the key is missing
+  // from the input — .optional() only means "undefined is also a valid
+  // parsed value", it doesn't stop the inner .default() from firing first.
+  // Left as-is, a genuinely partial update (e.g. saving just the "Contact
+  // info" section on the contact detail page) would silently reset
+  // leadStatus/industry/etc. back to their defaults on every save. Override
+  // each defaulted field here with a plain .optional() (no default) so an
+  // omitted key truly stays untouched.
+  lifecycleStage: lifecycleStageEnum.optional(),
+  leadStatus: leadStatusEnum.optional(),
+  industry: industryEnum.optional(),
+  leadSource: leadSourceEnum.optional(),
+  sequenceStep: z.coerce.number().int().min(0).max(10).optional(),
+  smsOptOut: z.boolean().optional(),
 });
 
 export const bulkStatusChangeSchema = z.object({
@@ -243,6 +258,9 @@ export const dealCreateSchema = z.object({
 
 export const dealUpdateSchema = dealCreateSchema.partial().extend({
   id: z.string().uuid(),
+  // see contactUpdateSchema's comment above: .partial() alone doesn't stop
+  // .default() from firing on a missing key.
+  stage: dealStageEnum.optional(),
 });
 
 export const taskCreateSchema = z.object({
@@ -261,6 +279,18 @@ export const taskCreateSchema = z.object({
 
 export const taskUpdateSchema = taskCreateSchema.partial().extend({
   id: z.string().uuid(),
+  // see contactUpdateSchema's comment above: .partial() alone doesn't stop
+  // .default() from firing on a missing key.
+  completed: z.boolean().optional(),
+});
+
+export const generateContactInsightsSchema = z.object({
+  contactId: z.string().uuid(),
+});
+
+export const sendContactChatMessageSchema = z.object({
+  contactId: z.string().uuid(),
+  question: z.string().trim().min(1, "Question cannot be empty").max(2000),
 });
 
 export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
