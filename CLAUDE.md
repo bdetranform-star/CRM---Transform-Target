@@ -191,6 +191,31 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     field's real enum options, rather than trusting them straight into a
     Prisma `in`/`notIn` — an invalid enum literal reaching Postgres directly
     would throw, not just no-op.
+    - **Multi-property AND-stacking, audited**: `buildWhereFromFilters()`
+      always accumulates every active filter into one shared
+      `and: Prisma.ContactWhereInput[]` array regardless of field type and
+      returns `{ AND: and }`, so any number of filters — mixed enum/string/
+      number/date — genuinely combine with AND, never overwrite each other.
+      `getContactsTable()` merges that `{ AND: [...] }` alongside the quick
+      filters' own top-level keys (`where.industry`, `where.leadStatus`,
+      the search box's `where.OR`) via `Object.assign`, which Prisma treats
+      as an implicit top-level AND across all of them too. On the client,
+      `AdvancedFiltersPanel`'s Sheet edits a local `draft` copy so in-progress
+      edits can be cancelled; "Apply filters" replaces the committed array
+      wholesale with `draft` (which always starts from the current committed
+      filters when the panel opens, so earlier filters are never dropped),
+      each chip's `X` removes only that one filter by index, and "Clear all"
+      resets to `[]` — all three write through the same `?filters=` URL
+      param, so removing one filter re-runs the query with the rest intact.
+      Verified end-to-end against real seeded Postgres data, both via a
+      direct `buildWhereFromFilters()` call (bypassing the UI) and live in
+      the browser: stacking Industry = Facility Maintenance Companies +
+      Lead Status = In Process/Dead Lead + Contact Owner = Saad Ahmed
+      narrowed 6 contacts → 4 → 3 → 1 (matching a hand-verified single row),
+      removing just the Contact Owner chip restored the 2-filter result
+      (not 0, not all 6), and "Clear all" restored all 6 — confirming the
+      chip-removal and AND-combination logic were already correct before
+      this audit; no fix was needed.
 - **Contact detail page** (`/contacts/[id]`, `components/contact-detail/
   contact-detail-page-view.tsx`) — a full page (not a slide-over) that's the
   only way to view or edit an existing contact; the Board, Contacts table,
