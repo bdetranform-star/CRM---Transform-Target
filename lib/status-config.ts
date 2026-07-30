@@ -135,6 +135,7 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   LINKEDIN: "LinkedIn",
   COLD_CALL: "Cold Call",
   SMS: "SMS",
+  WHATSAPP: "WhatsApp",
   REFERRAL: "Referral",
   INBOUND: "Inbound",
   EVENT: "Event",

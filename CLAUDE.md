@@ -353,6 +353,23 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   - Also retained from the pre-redesign dashboard: **Contacts by status**
     (`StatusBarChart`), **Contacts by industry** (`IndustryPieChart`), and the
     **sequence tracker** widget (`SequenceTrackerWidget`).
+  - **Contacts by status, by outreach channel** — four more `StatusBarChart`
+    instances below the overall one, in a 2x2 grid (`lg:grid-cols-2`, 1
+    column on narrow viewports), each with its own total-count shown in the
+    card header: Cold Email (`leadSource = COLD_EMAIL`), LinkedIn
+    (`LINKEDIN`), SMS / WhatsApp (`leadSource IN (SMS, WHATSAPP)`), and Cold
+    Calling (`COLD_CALL`). `getContactsByStatus()` (`app/actions/
+    dashboard.ts`) takes an optional `sources: LeadSource[]` third argument
+    shared by all five chart instances (the overall chart just omits it) so
+    there's one query implementation, not five near-duplicates; `StatusBarChart`
+    likewise takes an optional `title` prop (defaulting to "Contacts by
+    status") instead of a second component. All five still respect the
+    dashboard's `range`/`owner` filters — auditing this also surfaced and
+    fixed a pre-existing bug where the overall chart was being called as
+    `getContactsByStatus()` with no arguments at all, so it silently ignored
+    the date-range/owner filters the rest of the dashboard responded to;
+    `getContactsByStatus(range, owner)` now applies them like every other
+    widget.
   - Uses the CVD-validated 8-hue categorical palette in `lib/chart-palette.ts`
     for the status/industry/sources/deals/team charts, and the real
     per-channel brand colors (`lib/channel-config.tsx`) for the

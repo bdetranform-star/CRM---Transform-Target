@@ -6,14 +6,19 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CATEGORICAL_PALETTE } from "@/lib/chart-palette";
 
 export function StatusBarChart({
+  title = "Contacts by status",
   data,
 }: {
+  title?: string;
   data: { status: string; label: string; count: number }[];
 }) {
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Contacts by status</CardTitle>
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="text-sm">{title}</CardTitle>
+        <span className="text-xs font-medium text-muted-foreground">{total.toLocaleString()} contacts</span>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={260}>

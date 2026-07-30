@@ -16,7 +16,7 @@ import {
 } from "@/lib/status-config";
 import { CHANNEL_CONFIG } from "@/lib/channel-config";
 import { teamMemberEnum } from "@/lib/validations";
-import type { Prisma, TeamMember } from "@prisma/client";
+import type { Prisma, TeamMember, LeadSource } from "@prisma/client";
 
 export type DashboardRange = "7" | "30" | "90" | "365" | "all";
 
@@ -35,9 +35,23 @@ function contactOwnerFilter(owner?: string): TeamMember | undefined {
   return parsed?.success ? parsed.data : undefined;
 }
 
-export async function getContactsByStatus() {
+/**
+ * Contacts by status, optionally scoped to a set of leadSource values — the
+ * same shared query backs the overall "Contacts by status" chart (no
+ * `sources` filter) and the four per-channel variants below it.
+ */
+export async function getContactsByStatus(range: DashboardRange, owner?: string, sources?: LeadSource[]) {
   await requireAuth();
-  const grouped = await prisma.contact.groupBy({ by: ["leadStatus"], _count: true });
+  const ownerFilter = contactOwnerFilter(owner);
+  const start = rangeStart(range);
+
+  const where: Prisma.ContactWhereInput = {
+    ...(start ? { createdAt: { gte: start } } : {}),
+    ...(ownerFilter ? { contactOwner: ownerFilter } : {}),
+    ...(sources && sources.length > 0 ? { leadSource: { in: sources } } : {}),
+  };
+
+  const grouped = await prisma.contact.groupBy({ by: ["leadStatus"], _count: true, where });
   const counts = new Map(grouped.map((g) => [g.leadStatus, g._count]));
   return LEAD_STATUS_ORDER.map((status) => ({
     status,

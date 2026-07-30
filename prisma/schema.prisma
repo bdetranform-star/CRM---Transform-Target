@@ -101,6 +101,7 @@ enum LeadSource {
   LINKEDIN
   COLD_CALL
   SMS
+  WHATSAPP
   REFERRAL
   INBOUND
   EVENT

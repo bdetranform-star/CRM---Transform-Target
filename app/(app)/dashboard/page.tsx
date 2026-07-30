@@ -54,9 +54,13 @@ export default async function DashboardPage({
     teamActivity,
     openTasks,
     taskStatus,
+    byStatusColdEmail,
+    byStatusLinkedin,
+    byStatusSmsWhatsapp,
+    byStatusColdCalling,
   ] = await Promise.all([
     getSequenceCounts(),
-    getContactsByStatus(),
+    getContactsByStatus(range, owner),
     getContactsByIndustry(),
     getNewContactsCreatedSummary(range, owner),
     getContactSourcesBreakdown(range, owner),
@@ -67,6 +71,10 @@ export default async function DashboardPage({
     getTeamActivitySummary(range),
     getOpenTasksSummary(),
     getTaskStatusBreakdown(),
+    getContactsByStatus(range, owner, ["COLD_EMAIL"]),
+    getContactsByStatus(range, owner, ["LINKEDIN"]),
+    getContactsByStatus(range, owner, ["SMS", "WHATSAPP"]),
+    getContactsByStatus(range, owner, ["COLD_CALL"]),
   ]);
 
   return (
@@ -106,6 +114,18 @@ export default async function DashboardPage({
           <ActivityTypeChart data={activityBreakdown} />
           <TeamActivityChart data={teamActivity} />
           <TaskStatusChart data={taskStatus} />
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+            Contacts by status, by outreach channel
+          </h2>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <StatusBarChart title="Cold Email outreach — Contacts by status" data={byStatusColdEmail} />
+            <StatusBarChart title="LinkedIn outreach — Contacts by status" data={byStatusLinkedin} />
+            <StatusBarChart title="SMS / WhatsApp outreach — Contacts by status" data={byStatusSmsWhatsapp} />
+            <StatusBarChart title="Cold Calling outreach — Contacts by status" data={byStatusColdCalling} />
+          </div>
         </div>
       </div>
     </div>

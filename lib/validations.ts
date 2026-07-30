@@ -66,6 +66,7 @@ export const leadSourceEnum = z.enum([
   "LINKEDIN",
   "COLD_CALL",
   "SMS",
+  "WHATSAPP",
   "REFERRAL",
   "INBOUND",
   "EVENT",
