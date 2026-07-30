@@ -265,6 +265,27 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     actions rather than throwing. `next.config.ts` allowlists
     `*.public.blob.vercel-storage.com` in `images.remotePatterns` so
     `next/image` can serve the uploaded photo directly.
+    - **Missing-`BLOB_READ_WRITE_TOKEN` handling**: `@vercel/blob`'s `put()`
+      throws a plain `Error` mentioning "token" when the env var isn't set
+      (its own "No read-write token found..." message) — the only signal
+      available to distinguish "storage isn't configured yet" from any
+      other upload failure, so `describeBlobError()`
+      (`app/actions/contact-avatar.ts`) detects it with a substring check
+      and returns `{ success: false, error, notConfigured: true }` rather
+      than a message naming the env var (that belongs in the admin's lap,
+      not the end user's — the client-facing copy is just "Photo upload
+      isn't set up yet — contact your admin."). `AvatarUploadDialog`
+      renders that as a persistent inline banner in place of the drag-drop
+      zone (not a `toast`, which would auto-dismiss before most users read
+      it) and disables the Upload button, rather than inviting an identical
+      retry; the rest of the contact detail page is unaffected since the
+      failure is caught and returned, never thrown across the Server Action
+      boundary. No proactive "is storage configured?" check exists — the
+      condition is only surfaced reactively, after a real upload attempt —
+      so once `BLOB_READ_WRITE_TOKEN` is set in the environment, the very
+      next upload attempt succeeds with zero code changes; verified by
+      confirming the failure path end-to-end (this environment has no real
+      token to test the reverse).
   - **AI Insights panel** (`contact-insights-panel.tsx`) — a cached,
     manually-regenerated summary plus a persisted per-contact chat:
     - `generateContactInsights()` (`app/actions/contact-insights.ts`) sends

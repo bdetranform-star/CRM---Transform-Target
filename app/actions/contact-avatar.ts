@@ -16,17 +16,28 @@ function revalidateContactViews(contactId: string) {
   revalidatePath("/");
 }
 
-function describeBlobError(err: unknown): string {
-  const message = err instanceof Error ? err.message : "";
-  if (message.toLowerCase().includes("token")) {
-    return "Photo storage isn't configured (missing BLOB_READ_WRITE_TOKEN).";
+/**
+ * @vercel/blob's `put()` throws a plain Error mentioning "token" when
+ * BLOB_READ_WRITE_TOKEN isn't set (see its "No read-write token found..."
+ * message) — that's the only signal available to distinguish "storage isn't
+ * configured yet" from any other upload failure, so detection is necessarily
+ * a substring check rather than a typed error class. The user-facing message
+ * deliberately doesn't mention the env var name; that belongs in the admin's
+ * lap, not the end user's.
+ */
+function describeBlobError(err: unknown): { message: string; notConfigured: boolean } {
+  const raw = err instanceof Error ? err.message : "";
+  if (raw.toLowerCase().includes("token")) {
+    return { message: "Photo upload isn't set up yet — contact your admin.", notConfigured: true };
   }
-  return "Couldn't upload the photo. Please try again.";
+  return { message: "Couldn't upload the photo. Please try again.", notConfigured: false };
 }
 
 export async function uploadContactAvatar(
   formData: FormData
-): Promise<{ success: true; url: string } | { success: false; error: string }> {
+): Promise<
+  { success: true; url: string } | { success: false; error: string; notConfigured?: boolean }
+> {
   await requireAuth();
 
   const contactId = z.string().uuid().safeParse(formData.get("contactId"));
@@ -64,7 +75,8 @@ export async function uploadContactAvatar(
     revalidateContactViews(id);
     return { success: true, url: blob.url };
   } catch (err) {
-    return { success: false, error: describeBlobError(err) };
+    const { message, notConfigured } = describeBlobError(err);
+    return { success: false, error: message, notConfigured };
   }
 }
 

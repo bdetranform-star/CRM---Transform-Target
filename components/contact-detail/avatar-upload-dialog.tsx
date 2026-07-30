@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, X } from "lucide-react";
+import { AlertTriangle, UploadCloud, X } from "lucide-react";
 
 import {
   Dialog,
@@ -40,12 +40,14 @@ export function AvatarUploadDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function reset() {
     setFile(null);
     setPreviewUrl(null);
     setDragActive(false);
+    setNotConfigured(false);
   }
 
   function handleClose(next: boolean) {
@@ -76,6 +78,7 @@ export function AvatarUploadDialog({
   async function handleUpload() {
     if (!file) return;
     setSubmitting(true);
+    setNotConfigured(false);
     try {
       const formData = new FormData();
       formData.set("contactId", contactId);
@@ -85,6 +88,11 @@ export function AvatarUploadDialog({
         toast.success("Photo updated");
         onChanged();
         handleClose(false);
+      } else if (result.notConfigured) {
+        // A persistent environment issue, not a per-attempt fluke — show it
+        // inline instead of a toast so it doesn't disappear before the user
+        // reads it, and don't invite an identical retry.
+        setNotConfigured(true);
       } else {
         toast.error(result.error);
       }
@@ -134,34 +142,41 @@ export function AvatarUploadDialog({
             <ContactAvatar firstName={firstName} lastName={lastName} avatarUrl={currentAvatarUrl} size={96} />
           )}
 
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragActive(true);
-            }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-            className={cn(
-              "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
-              dragActive ? "border-[var(--accent-teal)] bg-secondary/50" : "border-border"
-            )}
-          >
-            <UploadCloud className="size-5" />
-            <span>Drag and drop an image, or click to choose a file</span>
-            <span className="text-xs">JPG, PNG, or WEBP · up to 5MB</span>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const chosen = e.target.files?.[0];
-                if (chosen) validateAndSet(chosen);
-                e.target.value = "";
+          {notConfigured ? (
+            <div className="flex w-full items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>Photo upload isn&apos;t set up yet — contact your admin.</span>
+            </div>
+          ) : (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
               }}
-            />
-          </div>
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
+              onClick={() => inputRef.current?.click()}
+              className={cn(
+                "flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
+                dragActive ? "border-[var(--accent-teal)] bg-secondary/50" : "border-border"
+              )}
+            >
+              <UploadCloud className="size-5" />
+              <span>Drag and drop an image, or click to choose a file</span>
+              <span className="text-xs">JPG, PNG, or WEBP · up to 5MB</span>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const chosen = e.target.files?.[0];
+                  if (chosen) validateAndSet(chosen);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-row justify-between">
@@ -176,7 +191,7 @@ export function AvatarUploadDialog({
             <Button type="button" variant="outline" onClick={() => handleClose(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleUpload} disabled={!file || submitting}>
+            <Button type="button" onClick={handleUpload} disabled={!file || submitting || notConfigured}>
               {submitting ? "Uploading..." : "Upload"}
             </Button>
           </div>
