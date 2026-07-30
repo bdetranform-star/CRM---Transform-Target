@@ -35,6 +35,7 @@ export async function getBoardContacts() {
       industry: true,
       contactOwner: true,
       sequenceStep: true,
+      avatarUrl: true,
     },
   });
 

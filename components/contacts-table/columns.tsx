@@ -7,6 +7,7 @@ import { format } from "date-fns";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/status-pill";
+import { ContactAvatar } from "@/components/contact-avatar";
 import {
   INDUSTRY_LABELS,
   INDUSTRY_DETAIL_LABELS,
@@ -50,6 +51,18 @@ export const contactColumns = [
       />
     ),
     enableSorting: false,
+  }),
+  columnHelper.display({
+    id: "avatar",
+    header: "",
+    cell: ({ row }) => (
+      <ContactAvatar
+        firstName={row.original.firstName}
+        lastName={row.original.lastName}
+        avatarUrl={row.original.avatarUrl}
+        size={28}
+      />
+    ),
   }),
   columnHelper.accessor("firstName", {
     header: "First Name",

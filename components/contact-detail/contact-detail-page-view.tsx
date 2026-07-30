@@ -12,12 +12,14 @@ import {
   ExternalLink,
   Undo2,
   Trash2,
+  Camera,
 } from "lucide-react";
 import type { Contact, ContactChatMessage, Touch, Deal, Task } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ContactAvatar } from "@/components/contact-avatar";
 import { deleteContact } from "@/app/actions/contacts";
 import { markSmsReplied } from "@/app/actions/touches";
 import { SequenceProgress } from "./sequence-progress";
@@ -28,12 +30,9 @@ import { ContactInfoSection, CompanyInfoSection, LeadInfoSection, DatesSection }
 import { LogCallDialog } from "./log-call-dialog";
 import { LogLinkedinDialog } from "./log-linkedin-dialog";
 import { SendSmsDialog } from "./send-sms-dialog";
+import { AvatarUploadDialog } from "./avatar-upload-dialog";
 
 type ContactDetail = Contact & { touches: Touch[]; deals: Deal[]; tasks: Task[] };
-
-function initials(firstName: string, lastName: string | null) {
-  return `${firstName[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
-}
 
 /** Strips the protocol/trailing slash for display; the href keeps the real URL. */
 function formatUrlLabel(url: string) {
@@ -56,6 +55,7 @@ export function ContactDetailPageView({
   const [callDialogOpen, setCallDialogOpen] = useState(false);
   const [linkedinDialogOpen, setLinkedinDialogOpen] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
 
   function refresh() {
     router.refresh();
@@ -178,9 +178,22 @@ export function ContactDetailPageView({
       <div className="flex min-h-0 flex-1">
         <div className="w-[320px] shrink-0 overflow-y-auto border-r border-border bg-white p-6">
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-base font-semibold text-[var(--brand-foreground)]">
-              {initials(contact.firstName, contact.lastName)}
-            </div>
+            <button
+              type="button"
+              onClick={() => setAvatarDialogOpen(true)}
+              className="group relative rounded-full"
+              aria-label="Change photo"
+            >
+              <ContactAvatar
+                firstName={contact.firstName}
+                lastName={contact.lastName}
+                avatarUrl={contact.avatarUrl}
+                size={48}
+              />
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="size-4" />
+              </span>
+            </button>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">
                 {contact.firstName} {contact.lastName}
@@ -247,6 +260,15 @@ export function ContactDetailPageView({
         open={smsDialogOpen}
         onOpenChange={setSmsDialogOpen}
         onSent={refresh}
+      />
+      <AvatarUploadDialog
+        contactId={contact.id}
+        firstName={contact.firstName}
+        lastName={contact.lastName}
+        currentAvatarUrl={contact.avatarUrl}
+        open={avatarDialogOpen}
+        onOpenChange={setAvatarDialogOpen}
+        onChanged={refresh}
       />
     </div>
   );

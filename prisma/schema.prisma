@@ -148,6 +148,9 @@ model Contact {
   cellPhone      String?
   linkedinUrl    String?
   company        String?
+  /// Public URL of the uploaded photo (Vercel Blob). Null falls back to an
+  /// initials circle everywhere the avatar is rendered.
+  avatarUrl      String?
 
   lifecycleStage LifecycleStage @default(LEAD)
   leadStatus     LeadStatus     @default(NEW_LEAD)

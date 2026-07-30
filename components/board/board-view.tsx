@@ -36,6 +36,7 @@ export type BoardContact = {
   industry: string;
   contactOwner: string;
   sequenceStep: number;
+  avatarUrl: string | null;
 };
 
 export function BoardView({

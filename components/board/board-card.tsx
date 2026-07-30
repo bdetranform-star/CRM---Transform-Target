@@ -5,6 +5,7 @@ import { Building2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { INDUSTRY_LABELS, SEQUENCE_STEPS } from "@/lib/status-config";
+import { ContactAvatar } from "@/components/contact-avatar";
 import type { BoardContact } from "./board-view";
 import type { Industry } from "@prisma/client";
 
@@ -38,9 +39,17 @@ export function BoardCard({
         overlay && "rotate-2 shadow-lg"
       )}
     >
-      <p className="text-sm font-medium">
-        {contact.firstName} {contact.lastName}
-      </p>
+      <div className="flex items-center gap-2">
+        <ContactAvatar
+          firstName={contact.firstName}
+          lastName={contact.lastName}
+          avatarUrl={contact.avatarUrl}
+          size={24}
+        />
+        <p className="truncate text-sm font-medium">
+          {contact.firstName} {contact.lastName}
+        </p>
+      </div>
       {contact.company && (
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
           <Building2 className="size-3" />

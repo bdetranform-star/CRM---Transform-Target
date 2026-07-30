@@ -26,6 +26,9 @@ what changed and why.
 - **@anthropic-ai/sdk** — the contact detail page's AI Insights summary and
   "Ask a question" chat, called only from Server Actions / a Route Handler
   so `ANTHROPIC_API_KEY` never reaches the client
+- **@vercel/blob** — stores uploaded contact photos (`Contact.avatarUrl`);
+  `BLOB_READ_WRITE_TOKEN` never reaches the client, only used server-side in
+  `app/actions/contact-avatar.ts`
 
 ## Architecture
 
@@ -221,6 +224,22 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     was deleted as dead code). The "+ New Contact" buttons on the Board and
     Contacts table open this panel; on success it navigates to
     `/contacts/[id]` for the newly created contact instead of just closing.
+  - **Avatar photo upload** — clicking the avatar circle in the identity
+    card opens `AvatarUploadDialog` (`components/contact-detail/
+    avatar-upload-dialog.tsx`): drag-and-drop or a file picker, client-side
+    validated to jpg/png/webp and 5MB max before a local
+    `URL.createObjectURL` preview, then `uploadContactAvatar()`
+    (`app/actions/contact-avatar.ts`) re-validates the same constraints
+    server-side, uploads to Vercel Blob at `avatars/{contactId}-{timestamp}.
+    {ext}` via `put(..., { access: "public" })`, saves the public URL to
+    `Contact.avatarUrl`, and best-effort deletes the previous blob if one
+    existed (a delete failure doesn't block the update the user is waiting
+    on). "Remove photo" (`removeContactAvatar()`) clears `avatarUrl` back to
+    `null` and deletes the blob the same way. Both actions return the same
+    discriminated `{success, ...}` shape used by the AI Insights/chat
+    actions rather than throwing. `next.config.ts` allowlists
+    `*.public.blob.vercel-storage.com` in `images.remotePatterns` so
+    `next/image` can serve the uploaded photo directly.
   - **AI Insights panel** (`contact-insights-panel.tsx`) — a cached,
     manually-regenerated summary plus a persisted per-contact chat:
     - `generateContactInsights()` (`app/actions/contact-insights.ts`) sends
@@ -420,6 +439,11 @@ mapping" below for exactly how existing seeded data was carried forward.
     the contact detail page's cached AI Insights summary; both set together
     whenever `generateContactInsights()` runs. Never populated automatically
     on a page view except the contact's very first one (see "Key modules").
+  - `avatarUrl: String?` (new) — public URL of an uploaded photo, stored in
+    Vercel Blob. `null` falls back to the existing initials-circle behavior
+    everywhere an avatar renders (`components/contact-avatar.tsx`'s
+    `ContactAvatar`, shared by the contact detail header, Board cards, and
+    the Contacts table's avatar column) — see "Key modules" below.
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)
@@ -660,7 +684,11 @@ See `.env.example`. Required: `DATABASE_URL`, `AUTH_SECRET` (NextAuth v5;
 for the Instantly.ai stretch goal: `INSTANTLY_API_KEY`,
 `INSTANTLY_WEBHOOK_SECRET`. Optional but required for the contact detail
 page's AI Insights/chat to actually call Anthropic rather than show a
-"missing API key" error state: `ANTHROPIC_API_KEY`. Seed-only (not read by
+"missing API key" error state: `ANTHROPIC_API_KEY`. Optional but required
+for the contact avatar photo upload to actually store the image rather than
+show a "photo storage isn't configured" error: `BLOB_READ_WRITE_TOKEN`
+(connect a Vercel Blob store to the project on Vercel, or `vercel env pull`
+locally). Seed-only (not read by
 the app itself, only by `prisma/seed.ts`): `SKIP_DEMO_SEED`, `ADMIN_EMAIL`,
 `ADMIN_PASSWORD` — see "Data layer" above.
 
@@ -688,6 +716,11 @@ Demo login: `admin@transformtargets.com` / `password123`.
   response) has not been exercised against the real API in this environment
   and should be checked once a real key is available, before relying on it
   in production.
+- Similarly, the contact avatar upload's error path (missing
+  `BLOB_READ_WRITE_TOKEN`) was verified end-to-end, but the actual upload
+  happy path has not been exercised against a real Vercel Blob store in
+  this environment (no token available here either) — check that once the
+  project has a Blob store connected, before relying on it in production.
 - Editing an existing `Deal` or `Task` (`components/deals/deal-form-dialog.tsx`,
   `components/tasks/task-form-dialog.tsx`) opens the dialog with the form
   reset to blank/default values instead of the record's current values —
