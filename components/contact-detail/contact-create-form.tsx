@@ -37,8 +37,8 @@ import {
 } from "@/lib/status-config";
 
 // Transform-free schema matching what the inputs below actually produce —
-// same split rationale as ContactEditForm; the server action re-validates
-// with the authoritative contactCreateSchema regardless.
+// the server action re-validates with the authoritative contactCreateSchema
+// regardless (see the "Forms" convention note in CLAUDE.md).
 const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string(),

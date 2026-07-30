@@ -59,7 +59,7 @@ export function ContactsTableView({
 
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const sortField = searchParams.get("sort") ?? "updatedAt";
   const sortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
@@ -197,7 +197,7 @@ export function ContactsTableView({
           <Download className="size-4" />
           Export {selectedIds.length > 0 ? `Selected (${selectedIds.length})` : "All"}
         </Button>
-        <Button size="sm" onClick={() => setSelectedContactId(NEW_CONTACT_ID)}>
+        <Button size="sm" onClick={() => setCreating(true)}>
           <Plus className="size-4" />
           New Contact
         </Button>
@@ -254,7 +254,7 @@ export function ContactsTableView({
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 className="cursor-pointer"
-                onClick={() => setSelectedContactId(row.original.id)}
+                onClick={() => router.push(`/contacts/${row.original.id}`)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
@@ -299,14 +299,11 @@ export function ContactsTableView({
       </div>
 
       <ContactDetailPanel
-        contactId={selectedContactId}
-        onClose={() => {
-          setSelectedContactId(null);
-          router.refresh();
-        }}
+        contactId={creating ? NEW_CONTACT_ID : null}
+        onClose={() => setCreating(false)}
         onCreated={(id) => {
-          setSelectedContactId(id);
-          router.refresh();
+          setCreating(false);
+          router.push(`/contacts/${id}`);
         }}
       />
     </div>

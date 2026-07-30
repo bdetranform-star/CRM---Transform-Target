@@ -46,7 +46,7 @@ export function BoardView({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [activeContact, setActiveContact] = useState<BoardContact | null>(null);
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const [contactsByStatus, setOptimisticContactsByStatus] = useOptimistic(
     initialContacts,
@@ -103,7 +103,7 @@ export function BoardView({
     <>
       <div className="flex h-full flex-col overflow-x-auto p-6">
         <div className="mb-4 flex justify-end">
-          <Button size="sm" onClick={() => setSelectedContactId(NEW_CONTACT_ID)}>
+          <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New Contact
           </Button>
@@ -121,7 +121,7 @@ export function BoardView({
                 status={status}
                 label={LEAD_STATUS_CONFIG[status].label}
                 contacts={contactsByStatus[status] ?? []}
-                onCardClick={setSelectedContactId}
+                onCardClick={(id) => router.push(`/contacts/${id}`)}
               />
             ))}
           </div>
@@ -131,11 +131,11 @@ export function BoardView({
         </DndContext>
       </div>
       <ContactDetailPanel
-        contactId={selectedContactId}
-        onClose={() => setSelectedContactId(null)}
+        contactId={creating ? NEW_CONTACT_ID : null}
+        onClose={() => setCreating(false)}
         onCreated={(id) => {
-          setSelectedContactId(id);
-          router.refresh();
+          setCreating(false);
+          router.push(`/contacts/${id}`);
         }}
       />
     </>

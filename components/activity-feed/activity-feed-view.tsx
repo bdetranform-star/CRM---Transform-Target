@@ -1,13 +1,11 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Activity } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ChannelIcon, CHANNEL_CONFIG } from "@/lib/channel-config";
-import { ContactDetailPanel } from "@/components/contact-detail/contact-detail-panel";
 import type { getActivityFeed } from "@/app/actions/activity-feed";
 
 type FeedData = Awaited<ReturnType<typeof getActivityFeed>>;
@@ -16,7 +14,6 @@ export function ActivityFeedView({ data }: { data: FeedData }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
 
   function goToPage(page: number) {
     const next = new URLSearchParams(searchParams.toString());
@@ -42,7 +39,7 @@ export function ActivityFeedView({ data }: { data: FeedData }) {
           <li
             key={touch.id}
             className="flex cursor-pointer gap-3 p-4 hover:bg-secondary/40"
-            onClick={() => setSelectedContactId(touch.contact.id)}
+            onClick={() => router.push(`/contacts/${touch.contact.id}`)}
           >
             <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary">
               <ChannelIcon channel={touch.channel} className="size-4" />
@@ -91,8 +88,6 @@ export function ActivityFeedView({ data }: { data: FeedData }) {
           </Button>
         </div>
       </div>
-
-      <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
     </div>
   );
 }
