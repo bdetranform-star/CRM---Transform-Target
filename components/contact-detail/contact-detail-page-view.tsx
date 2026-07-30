@@ -35,6 +35,15 @@ function initials(firstName: string, lastName: string | null) {
   return `${firstName[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
 }
 
+/** Strips the protocol/trailing slash for display; the href keeps the real URL. */
+function formatUrlLabel(url: string) {
+  return url.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+}
+
+function toHref(url: string) {
+  return /^https?:\/\//.test(url) ? url : `https://${url}`;
+}
+
 export function ContactDetailPageView({
   contact,
   initialChatMessages,
@@ -91,9 +100,37 @@ export function ContactDetailPageView({
             <h1 className="text-lg font-semibold">
               {contact.firstName} {contact.lastName}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {contact.company || "No company"} · {contact.email}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+              <span>{contact.company || "No company"}</span>
+              <span>·</span>
+              <span>{contact.email}</span>
+              {contact.websiteUrl && (
+                <>
+                  <span>·</span>
+                  <a
+                    href={toHref(contact.websiteUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--accent-teal)] hover:underline"
+                  >
+                    {formatUrlLabel(contact.websiteUrl)}
+                  </a>
+                </>
+              )}
+              {contact.linkedinUrl && (
+                <>
+                  <span>·</span>
+                  <a
+                    href={contact.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--accent-teal)] hover:underline"
+                  >
+                    LinkedIn
+                  </a>
+                </>
+              )}
+            </div>
             {contact.smsOptOut && (
               <Badge variant="destructive" className="mt-1 w-fit">
                 SMS opted out

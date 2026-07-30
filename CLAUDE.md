@@ -192,7 +192,12 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   contact-detail-page-view.tsx`) — a full page (not a slide-over) that's the
   only way to view or edit an existing contact; the Board, Contacts table,
   and Activity Feed all `router.push()` here on click instead of opening a
-  panel. Layout: a header (back link, name/company/email, the same quick
+  panel. Layout: a header (back link, name/company/email, clickable Website
+  URL/LinkedIn URL links that open in a new tab and are simply omitted when
+  either field is empty — `formatUrlLabel()`/`toHref()` in
+  `contact-detail-page-view.tsx`, wrapped via `flex-wrap` so a contact with
+  every field populated wraps to a second line on narrow viewports instead
+  of truncating — the same quick
   actions the old panel had — Log a call / Log LinkedIn touch / Send SMS /
   Reply logged / Open LinkedIn profile / Delete — plus `SequenceProgress`);
   a ~320px left column (`property-sections.tsx`'s `ContactInfoSection` /
