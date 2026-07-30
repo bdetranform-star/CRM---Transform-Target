@@ -23,6 +23,9 @@ what changed and why.
 - **Recharts** — the reporting dashboard
 - **date-fns** — date-range math for the dashboard and relative timestamps
   on the Activity Feed
+- **@anthropic-ai/sdk** — the contact detail page's AI Insights summary and
+  "Ask a question" chat, called only from Server Actions / a Route Handler
+  so `ANTHROPIC_API_KEY` never reaches the client
 
 ## Architecture
 
@@ -38,6 +41,7 @@ what changed and why.
   mirrors HubSpot's own top-to-bottom order:
   - `/` — **Home**: Board (Kanban) view, the default view
   - `/contacts` — **Contacts**: Table view with saved-view tabs + advanced filters
+  - `/contacts/[id]` — the full **Contact detail page** — see "Key modules" below
   - `/companies` — **Companies**: read-only rollup derived from `Contact.company`
   - `/deals` — **Deals**
   - `/tasks` — **Tasks**
@@ -184,16 +188,68 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     field's real enum options, rather than trusting them straight into a
     Prisma `in`/`notIn` — an invalid enum literal reaching Postgres directly
     would throw, not just no-op.
-- **Contact detail panel** (`components/contact-detail/`) — a `Sheet`
-  (slide-over from the right, not a centered dialog) that lazy-fetches the
-  full contact + touch history when opened. Reused by the Board, Table, and
-  anywhere else a contact needs inspecting. Also doubles as the "new
-  contact" form: passing the `NEW_CONTACT_ID` sentinel as `contactId`
-  renders `ContactCreateForm` instead of fetching, skipping the quick
-  actions/tabs/touch-history that don't make sense before the contact
-  exists. The "+ New Contact" buttons on the Board and Contacts table both
-  open the panel this way; on success the panel switches itself to normal
-  view mode for the newly created contact via `onCreated`.
+- **Contact detail page** (`/contacts/[id]`, `components/contact-detail/
+  contact-detail-page-view.tsx`) — a full page (not a slide-over) that's the
+  only way to view or edit an existing contact; the Board, Contacts table,
+  and Activity Feed all `router.push()` here on click instead of opening a
+  panel. Layout: a header (back link, name/company/email, the same quick
+  actions the old panel had — Log a call / Log LinkedIn touch / Send SMS /
+  Reply logged / Open LinkedIn profile / Delete — plus `SequenceProgress`);
+  a ~320px left column (`property-sections.tsx`'s `ContactInfoSection` /
+  `CompanyInfoSection` / `LeadInfoSection`, each independently toggled
+  between a read-only display and an inline edit form calling `updateContact`
+  with just that section's fields — a genuine partial update, see the
+  `contactUpdateSchema` note under "Data model" below — plus a read-only
+  `DatesSection`); and a right-side `Overview`/`Activities` tab pair
+  (`Tabs`). Overview shows `ContactInsightsPanel` (see below) and the 5 most
+  recent touches (reusing `TouchTimeline`) with a link into the Activities
+  tab. Activities shows `ActivityTimelineTab` — sub-tabs for All/Notes/
+  Emails/Calls/LinkedIn/SMS (client-side filtered over the already-fetched
+  touch list, no extra round trip), a search box (matches touch body text)
+  and a from/to date-range filter, and a "Log a note" box wired to the
+  existing `addNoteTouch` action.
+  - **"New contact" stays a slide-over**, not this page — there's no `id` to
+    route to yet. `ContactDetailPanel` (`components/contact-detail/
+    contact-detail-panel.tsx`) was trimmed down to just that create flow
+    (it used to also handle viewing/editing via a `NEW_CONTACT_ID` sentinel
+    vs. a real id; the view/edit half moved to this page, so `ContactEditForm`
+    was deleted as dead code). The "+ New Contact" buttons on the Board and
+    Contacts table open this panel; on success it navigates to
+    `/contacts/[id]` for the newly created contact instead of just closing.
+  - **AI Insights panel** (`contact-insights-panel.tsx`) — a cached,
+    manually-regenerated summary plus a persisted per-contact chat:
+    - `generateContactInsights()` (`app/actions/contact-insights.ts`) sends
+      the contact's full properties + touch history
+      (`lib/contact-ai-context.ts`'s `buildContactContext()`) to Anthropic
+      and caches the result on `Contact.aiInsightsSummary`/
+      `aiInsightsGeneratedAt`. Called automatically only on the very first
+      load of a contact that has never had insights generated (`summary`
+      is `null`); every subsequent view just renders the cached copy, and
+      regenerating again requires an explicit "Regenerate" click — this is
+      the cost control the spec asked for, not a cache-expiry policy.
+    - The "Ask a question" chat is intentionally **not** a Server Action —
+      streaming a token-by-token response doesn't fit that model without
+      extra libraries this app doesn't have, so it's a Route Handler instead
+      (`app/api/contacts/[id]/chat/route.ts`, POST, `ReadableStream`
+      response) per the "API routes exist only where a Server Action
+      doesn't fit" convention. It persists the user's message immediately,
+      then the assistant's full accumulated reply once the stream ends —
+      persisted even on a **mid-stream failure**, appending a
+      `[[STREAM_ERROR:...]]` marker the client strips out and renders as an
+      error state (with retry) instead of model output, so a dropped
+      connection never just silently truncates the reply with no
+      explanation. Chat messages persist in the new `ContactChatMessage`
+      model and reload on every page visit, scoped to that one contact only
+      (the prompt never includes any other contact's data).
+    - Both features return a discriminated `{success: true, ...} |
+      {success: false, error}` result (or, for the streaming route, a plain
+      error JSON) rather than letting a thrown `Error` cross the Server
+      Action boundary — Next.js redacts custom error messages from thrown
+      errors in production, so a friendly, specific message (missing API
+      key vs. rate limit vs. network) would never actually reach the client
+      otherwise. `lib/anthropic.ts`'s `describeAnthropicError()` maps the
+      SDK's error classes (`AuthenticationError`, `RateLimitError`,
+      `APIError`) to that friendly text in one place.
 - **Call Queue** (`components/call-queue/`) — pulls contacts at
   `sequenceStep === 2`, walks through them one at a time client-side (no
   server round trip to advance/skip). Logging a call with outcome
@@ -355,6 +411,10 @@ mapping" below for exactly how existing seeded data was carried forward.
     LinkedIn Tasks, and sequence tracker all filter/count on. Unchanged by
     the redesign.
   - `smsOptOut: Boolean` — gates the SMS send action everywhere. Unchanged.
+  - `aiInsightsSummary: String?` / `aiInsightsGeneratedAt: DateTime?` (new) —
+    the contact detail page's cached AI Insights summary; both set together
+    whenever `generateContactInsights()` runs. Never populated automatically
+    on a page view except the contact's very first one (see "Key modules").
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)
@@ -373,10 +433,35 @@ mapping" below for exactly how existing seeded data was carried forward.
   delete — a task can exist without a contact), `title`, `dueDate:
   DateTime?`, `completed: Boolean` (default `false`), `assignedTo`
   (`TeamMember` enum), `createdAt`, `updatedAt`.
+- **`ContactChatMessage`** (new) — the contact detail page's persisted
+  "Ask a question" thread: `contactId` (FK → `Contact`, cascade delete),
+  `role` (`ChatRole` enum: `USER` / `ASSISTANT`), `content: String @db.Text`,
+  `createdAt`. One row per turn; reloaded in full whenever that contact's
+  page is opened.
 
 All models use `id String @id @default(uuid())`. Deleting a `Contact`
-cascades to its `Touch` history and `Deal`s, but only detaches (`SET NULL`)
-its `Task`s rather than deleting them, since a task can stand alone.
+cascades to its `Touch` history, `Deal`s, and `ContactChatMessage`s, but
+only detaches (`SET NULL`) its `Task`s rather than deleting them, since a
+task can stand alone.
+
+**A gotcha that bit the `Contact`/`Deal`/`Task` update schemas**:
+`someCreateSchema.partial().extend({ id })` is the established pattern for
+deriving an update schema from a create schema (see "Forms" below), but
+`.partial()` only wraps every field in `.optional()` — it does **not** stop
+a field's `.default()` from firing when the key is missing from the input,
+because `.optional()` just means "undefined is also a valid parsed value,"
+while `.default()` is a transform that replaces a missing/undefined value
+with the default regardless of the optional wrapper. Concretely: before the
+fix, saving just the contact detail page's "Contact info" section (which
+never sends `leadStatus`/`industry`/etc.) silently reset those fields back
+to their schema defaults (`NEW_LEAD`, `FACILITY_MAINTENANCE_COMPANIES`, ...)
+on every save — a real, reproducible data-corrupting bug caught by testing
+the new edit-in-place sections end to end, since every *other* caller of
+`updateContact` before this always submitted the complete form (so the
+missing-key case never came up). Fixed by re-declaring each defaulted field
+as a plain `.optional()` (no default) in the three affected update schemas
+(`contactUpdateSchema`, `dealUpdateSchema`, `taskUpdateSchema`) so an
+omitted key now genuinely means "leave this field alone."
 
 ## Migration notes: old → new mapping
 
@@ -568,9 +653,11 @@ the migration file, which then gets picked up by `migrate deploy` on deploy.
 See `.env.example`. Required: `DATABASE_URL`, `AUTH_SECRET` (NextAuth v5;
 `NEXTAUTH_SECRET`/`NEXTAUTH_URL` are also set for compatibility). Optional,
 for the Instantly.ai stretch goal: `INSTANTLY_API_KEY`,
-`INSTANTLY_WEBHOOK_SECRET`. Seed-only (not read by the app itself, only by
-`prisma/seed.ts`): `SKIP_DEMO_SEED`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` — see
-"Data layer" above.
+`INSTANTLY_WEBHOOK_SECRET`. Optional but required for the contact detail
+page's AI Insights/chat to actually call Anthropic rather than show a
+"missing API key" error state: `ANTHROPIC_API_KEY`. Seed-only (not read by
+the app itself, only by `prisma/seed.ts`): `SKIP_DEMO_SEED`, `ADMIN_EMAIL`,
+`ADMIN_PASSWORD` — see "Data layer" above.
 
 ## Local dev
 
@@ -590,3 +677,19 @@ Demo login: `admin@transformtargets.com` / `password123`.
   seam to drop in Twilio.
 - Instantly.ai integration is webhook-only (no polling fallback implemented).
 - No test suite yet.
+- The AI Insights/chat error paths (missing API key, mid-stream failure)
+  were verified end-to-end against a real Postgres instance without
+  `ANTHROPIC_API_KEY` set; the happy path (an actual successful Anthropic
+  response) has not been exercised against the real API in this environment
+  and should be checked once a real key is available, before relying on it
+  in production.
+- Editing an existing `Deal` or `Task` (`components/deals/deal-form-dialog.tsx`,
+  `components/tasks/task-form-dialog.tsx`) opens the dialog with the form
+  reset to blank/default values instead of the record's current values —
+  `useForm({ defaultValues })` only applies once at mount, and neither
+  dialog has a `useEffect` that calls `reset()` when the `deal`/`task` prop
+  changes to a different record. Pre-existing, unrelated to the contact
+  detail page work; noticed only because saving a Deal/Task with all-blank
+  required fields surfaces a client-side validation error rather than
+  silently corrupting anything. Not fixed here since it's out of scope for
+  this change — worth a follow-up.
