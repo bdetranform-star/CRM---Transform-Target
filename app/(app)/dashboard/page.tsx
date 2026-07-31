@@ -80,7 +80,8 @@ export default async function DashboardPage({
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold">Dashboards</h1>
+        <h1 className="text-lg font-semibold">Welcome back, BDE Team</h1>
+        <h2 className="mt-3 text-lg font-semibold">Dashboards</h2>
         <p className="text-sm text-muted-foreground">
           Pipeline health and outreach activity at a glance.
         </p>

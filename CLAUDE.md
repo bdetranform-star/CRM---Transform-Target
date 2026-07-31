@@ -121,6 +121,13 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   `useDroppable` column per `LeadStatus` and one `useDraggable` card per
   contact. Drag end calls the `updateContactStatus` server action; the UI
   updates optimistically via `useOptimistic` before the server confirms.
+  The page header (`app/(app)/page.tsx`) leads with a static "Welcome back,
+  BDE Team" heading above the existing "Lead Board" title — same
+  `text-lg font-semibold` styling as the title it sits above (a plain
+  heading, not a banner/callout), with "Lead Board" itself demoted to an
+  `<h2>` underneath it for correct heading hierarchy even though its look
+  is unchanged. The Dashboards page (`app/(app)/dashboard/page.tsx`) has
+  the identical heading above its own title for the same reason.
 - **Contacts table** (`components/contacts-table/`) — TanStack Table in
   fully **manual** mode (`manualPagination`/`manualSorting`): sorting, paging,
   and filtering all round-trip through URL search params
