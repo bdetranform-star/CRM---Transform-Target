@@ -54,7 +54,7 @@ const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string(),
   jobTitle: z.string(),
-  email: z.string().email("Enter a valid email"),
+  email: z.union([z.string().email("Enter a valid email"), z.literal("")]),
   workPhone: z.string(),
   cellPhone: z.string(),
   linkedinUrl: z.string(),

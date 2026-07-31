@@ -31,9 +31,12 @@ const PREVIEW_ROWS = 6;
 export function ImportExportView({ owners }: { owners: string[] }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [mappedRows, setMappedRows] = useState<MappedImportRow[]>([]);
+  const [skippedEmptyCount, setSkippedEmptyCount] = useState(0);
   const [defaultOwner, setDefaultOwner] = useState(owners[0] ?? "");
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; duplicates: number; skippedEmpty: number } | null>(
+    null
+  );
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,11 +52,16 @@ export function ImportExportView({ owners }: { owners: string[] }) {
           toast.error("Could not read a header row from this file");
           return;
         }
-        const mapped = mapCsvRows(headerRow, dataRows);
-        if (mapped.length === 0) {
-          toast.error("No valid rows found (an Email column is required)");
+        const { rows, skippedEmpty } = mapCsvRows(headerRow, dataRows);
+        if (rows.length === 0) {
+          toast.error(
+            skippedEmpty > 0
+              ? "Every row in this file was completely empty — nothing to import"
+              : "No rows found in this file"
+          );
         }
-        setMappedRows(mapped);
+        setMappedRows(rows);
+        setSkippedEmptyCount(skippedEmpty);
       },
       error: () => toast.error("Failed to parse CSV file"),
     });
@@ -74,9 +82,10 @@ export function ImportExportView({ owners }: { owners: string[] }) {
       });
       if (!res.ok) throw new Error("Import failed");
       const data = await res.json();
-      setResult({ imported: data.imported, skipped: data.skipped });
+      setResult({ imported: data.imported, duplicates: data.skipped, skippedEmpty: skippedEmptyCount });
       toast.success(`Imported ${data.imported} contact(s)`);
       setMappedRows([]);
+      setSkippedEmptyCount(0);
       setFileName(null);
     } catch {
       toast.error("Failed to import contacts");
@@ -149,6 +158,13 @@ export function ImportExportView({ owners }: { owners: string[] }) {
                 <p className="mb-2 text-sm font-medium">
                   Preview (first {Math.min(PREVIEW_ROWS, mappedRows.length)} of {mappedRows.length}{" "}
                   rows)
+                  {skippedEmptyCount > 0 && (
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      — {skippedEmptyCount} completely empty row{skippedEmptyCount === 1 ? "" : "s"} will be
+                      skipped
+                    </span>
+                  )}
                 </p>
                 <div className="overflow-hidden rounded-lg border border-border">
                   <Table>
@@ -167,7 +183,7 @@ export function ImportExportView({ owners }: { owners: string[] }) {
                         <TableRow key={i}>
                           <TableCell>{row.firstName}</TableCell>
                           <TableCell>{row.lastName}</TableCell>
-                          <TableCell>{row.email}</TableCell>
+                          <TableCell>{row.email || "—"}</TableCell>
                           <TableCell>{row.workPhone}</TableCell>
                           <TableCell>{row.company}</TableCell>
                           <TableCell>{INDUSTRY_LABELS[row.industry]}</TableCell>
@@ -189,7 +205,9 @@ export function ImportExportView({ owners }: { owners: string[] }) {
 
           {result && (
             <p className="text-sm text-muted-foreground">
-              Imported {result.imported} contact(s){result.skipped > 0 ? `, skipped ${result.skipped} duplicate(s)` : ""}.
+              {result.imported} row{result.imported === 1 ? "" : "s"} imported successfully
+              {result.duplicates > 0 ? `, ${result.duplicates} skipped (duplicate email)` : ""}
+              {result.skippedEmpty > 0 ? `, ${result.skippedEmpty} skipped (completely empty)` : ""}.
             </p>
           )}
         </CardContent>

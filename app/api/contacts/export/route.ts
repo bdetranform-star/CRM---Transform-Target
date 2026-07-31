@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     c.firstName,
     c.lastName ?? "",
     c.jobTitle ?? "",
-    c.email,
+    c.email ?? "",
     c.workPhone ?? "",
     c.cellPhone ?? "",
     c.linkedinUrl ?? "",

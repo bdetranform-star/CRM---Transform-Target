@@ -90,7 +90,7 @@ export function ContactInfoSection({ contact, onSaved }: { contact: Contact; onS
     firstName: contact.firstName,
     lastName: contact.lastName ?? "",
     jobTitle: contact.jobTitle ?? "",
-    email: contact.email,
+    email: contact.email ?? "",
     workPhone: contact.workPhone ?? "",
     cellPhone: contact.cellPhone ?? "",
     linkedinUrl: contact.linkedinUrl ?? "",

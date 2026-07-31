@@ -27,7 +27,7 @@ export function buildContactContext(contact: Contact, touches: Touch[]): string 
   const lines = [
     `Name: ${contact.firstName} ${contact.lastName ?? ""}`.trim(),
     contact.jobTitle ? `Job title: ${contact.jobTitle}` : null,
-    `Email: ${contact.email}`,
+    contact.email ? `Email: ${contact.email}` : null,
     contact.workPhone ? `Work phone: ${contact.workPhone}` : null,
     contact.cellPhone ? `Cell phone: ${contact.cellPhone}` : null,
     contact.company ? `Company: ${contact.company}` : null,

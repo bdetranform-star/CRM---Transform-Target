@@ -25,7 +25,7 @@ export type LinkedinBoardContact = {
   firstName: string;
   lastName: string | null;
   company: string | null;
-  email: string;
+  email: string | null;
   linkedinLifecycleStage: LinkedinLifecycleStage;
   linkedinConnectionStatus: string | null;
   contactOwner: string;

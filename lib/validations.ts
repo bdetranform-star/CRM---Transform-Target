@@ -163,7 +163,10 @@ export const contactCreateSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: optionalTrimmedString,
   jobTitle: optionalTrimmedString,
-  email: z.string().trim().email("Enter a valid email"),
+  email: z
+    .union([z.string().trim().email("Enter a valid email"), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
   workPhone: optionalTrimmedString,
   cellPhone: optionalTrimmedString,
   linkedinUrl: optionalTrimmedString,
@@ -282,14 +285,32 @@ export const smsTemplateUpdateSchema = smsTemplateSchema.partial().extend({
 });
 
 export const importContactRowSchema = z.object({
-  firstName: z.string().trim().min(1),
+  // Only a completely blank row is rejected (filtered out client-side by
+  // mapCsvRows before this schema even runs) — no single column, including
+  // firstName/email, is required for a row to import.
+  firstName: z.string().trim().optional().default(""),
   lastName: z.string().trim().optional().default(""),
-  email: z.string().trim().email(),
+  email: z
+    .union([z.string().trim().email(), z.literal("")])
+    .optional()
+    .default("")
+    .transform((v) => (v === "" ? null : v)),
   workPhone: z.string().trim().optional().default(""),
   linkedinUrl: z.string().trim().optional().default(""),
   company: z.string().trim().optional().default(""),
   industry: industryEnum.optional().default("FACILITY_MAINTENANCE_COMPANIES"),
   contactOwner: z.union([teamMemberEnum, z.literal("")]).optional().default(""),
+  designation: z.string().trim().optional().default(""),
+  linkedinConnectionStatus: z.union([linkedinConnectionStatusEnum, z.literal("")]).optional().default(""),
+  linkedinPitchNote: z.string().trim().optional().default(""),
+  linkedinFollowUp1: z.boolean().optional(),
+  linkedinFollowUp2: z.boolean().optional(),
+  linkedinFollowUp3: z.boolean().optional(),
+  linkedinFollowUp4: z.boolean().optional(),
+  linkedinLifecycleStage: z.union([linkedinLifecycleStageEnum, z.literal("")]).optional().default(""),
+  interestedResponseFrom: z.union([interestedResponseChannelEnum, z.literal("")]).optional().default(""),
+  channelTags: z.array(channelTagEnum).optional().default([]),
+  linkedinConnectedOn: z.coerce.date().optional(),
 });
 
 export const importContactsSchema = z.object({

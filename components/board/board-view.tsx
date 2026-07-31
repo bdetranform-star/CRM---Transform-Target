@@ -31,7 +31,7 @@ export type BoardContact = {
   firstName: string;
   lastName: string | null;
   company: string | null;
-  email: string;
+  email: string | null;
   leadStatus: LeadStatus;
   industry: string;
   contactOwner: string;

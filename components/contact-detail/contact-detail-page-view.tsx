@@ -108,8 +108,12 @@ export function ContactDetailPageView({
             </h1>
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               <span>{contact.company || "No company"}</span>
-              <span>·</span>
-              <span>{contact.email}</span>
+              {contact.email && (
+                <>
+                  <span>·</span>
+                  <span>{contact.email}</span>
+                </>
+              )}
               {contact.websiteUrl && (
                 <>
                   <span>·</span>

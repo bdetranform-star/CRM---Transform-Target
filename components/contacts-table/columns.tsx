@@ -82,6 +82,7 @@ export const contactColumns = [
   }),
   columnHelper.accessor("email", {
     header: "Email Address",
+    cell: (info) => info.getValue() ?? "—",
   }),
   columnHelper.accessor("workPhone", {
     header: "Work Phone Number",

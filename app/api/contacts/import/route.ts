@@ -22,16 +22,23 @@ export async function POST(request: NextRequest) {
   const { contacts, defaultOwner } = parsed.data;
 
   // SQLite's `createMany` doesn't support `skipDuplicates`, so de-dupe against
-  // existing emails (and within the batch itself) before inserting.
-  const emails = contacts.map((row) => row.email);
-  const existing = await prisma.contact.findMany({
-    where: { email: { in: emails } },
-    select: { email: true },
-  });
+  // existing emails (and within the batch itself) before inserting. Rows with
+  // no email (null) are never deduped against each other or against existing
+  // no-email contacts — only a real, non-null email can collide, matching the
+  // nullable @unique column's own semantics (Postgres allows any number of
+  // NULLs in a unique index).
+  const emails = contacts.map((row) => row.email).filter((email): email is string => email !== null);
+  const existing = emails.length
+    ? await prisma.contact.findMany({
+        where: { email: { in: emails } },
+        select: { email: true },
+      })
+    : [];
   const existingEmails = new Set(existing.map((c) => c.email));
   const seenInBatch = new Set<string>();
 
   const rowsToInsert = contacts.filter((row) => {
+    if (row.email === null) return true;
     if (existingEmails.has(row.email) || seenInBatch.has(row.email)) return false;
     seenInBatch.add(row.email);
     return true;
@@ -39,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const result = await prisma.contact.createMany({
     data: rowsToInsert.map((row) => ({
-      firstName: row.firstName,
+      firstName: row.firstName || "",
       lastName: row.lastName || null,
       email: row.email,
       workPhone: row.workPhone || null,
@@ -47,6 +54,17 @@ export async function POST(request: NextRequest) {
       company: row.company || null,
       contactOwner: row.contactOwner || defaultOwner,
       industry: row.industry,
+      designation: row.designation || null,
+      linkedinConnectionStatus: row.linkedinConnectionStatus || null,
+      linkedinPitchNote: row.linkedinPitchNote || null,
+      linkedinFollowUp1: row.linkedinFollowUp1 ?? null,
+      linkedinFollowUp2: row.linkedinFollowUp2 ?? null,
+      linkedinFollowUp3: row.linkedinFollowUp3 ?? null,
+      linkedinFollowUp4: row.linkedinFollowUp4 ?? null,
+      linkedinLifecycleStage: row.linkedinLifecycleStage || null,
+      interestedResponseFrom: row.interestedResponseFrom || null,
+      channelTags: row.channelTags,
+      linkedinConnectedOn: row.linkedinConnectedOn ?? null,
     })),
   });
 

@@ -194,7 +194,12 @@ model Contact {
   firstName      String
   lastName       String?
   jobTitle       String?
-  email          String   @unique
+  /// Nullable — CSV-imported rows without a usable email column still
+  /// import successfully, matching the rest of the model's "leave it blank
+  /// rather than reject the row" convention. Still @unique: Postgres allows
+  /// any number of NULLs in a unique column/index, so multiple email-less
+  /// contacts never collide with each other, only with a real duplicate.
+  email          String?  @unique
   workPhone      String?
   cellPhone      String?
   linkedinUrl    String?

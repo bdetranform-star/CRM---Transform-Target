@@ -586,6 +586,44 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   fully populated regardless of how many contacts currently have each owner
   assigned (see the `contactOwner` note under "Data model" below for how this
   differs from `getContactOwners()`).
+  - **Email is optional, not a row-validity gate.** `Contact.email` is
+    `String? @unique` (migration `20260731233629_make_contact_email_optional`)
+    specifically so CSV rows without a usable email column still import —
+    Postgres allows any number of `NULL`s in a unique column/index, so
+    multiple email-less contacts never collide with each other or with an
+    existing email-less contact, only a genuine duplicate real email still
+    gets skipped. `mapCsvRows()`'s only skip condition is
+    `isRowEffectivelyEmpty()` — every recognized column blank, not just
+    email — so a row with, say, only a Company Name still imports with
+    `firstName: ""` and `email: null`. (`firstName` stays a non-nullable
+    `String` column; an empty string satisfies that constraint without
+    needing a placeholder value, unlike `email`, which needs real `null` to
+    stay collision-free under the unique constraint.) The import route's
+    dedupe step (`existingEmails`/`seenInBatch`) explicitly skips this check
+    for `email === null` rows so they're never treated as duplicates of one
+    another. The manual "New Contact" form's Email field is optional for the
+    same reason (`contactCreateSchema.email` and the form's local
+    transform-free schema both accept `""`), so the UI and the CSV path
+    agree on what "no email" means. The post-import summary
+    (`components/import-export/import-export-view.tsx`) reports three
+    distinct counts — rows imported, rows skipped for a duplicate email, and
+    rows skipped for being completely empty — since those are different
+    situations a user needs to distinguish, not one generic "skipped" count.
+  - **Field mapping covers the full Contact property set**, not just the
+    original core fields — `HEADER_ALIASES`/`ImportField` also recognize
+    Designation, LinkedIn Status, Pitch / Connection Request Note, the 4
+    Follow Up LinkedIn columns (parsed from Yes/No/True/False/1/0 via
+    `parseBooleanLike`), Lifecycle of LinkedIn, Interested Response From,
+    Channel Tag (multi-value — split on comma/semicolon/pipe, each piece
+    matched independently via `detectChannelTags`), and LinkedIn Connected On
+    (`parseDateLike`, accepting this app's own US `MM/DD/YYYY` export format
+    or ISO). The three enum-label fields (LinkedIn Status, Lifecycle of
+    LinkedIn, Interested Response From) match case-insensitively against
+    either the human-readable label or the raw enum value via a shared
+    `buildLabelLookup()` helper, so a re-imported export from this same app
+    round-trips correctly. An unrecognized header is simply left unmapped
+    (ignored), never an error — matching the existing convention for any
+    extra column in an uploaded file.
 - **Instantly.ai webhook** (`app/api/webhooks/instantly/route.ts`,
   `lib/instantly.ts`) — verifies a shared secret
   (`INSTANTLY_WEBHOOK_SECRET`, checked against the `x-instantly-secret`
@@ -605,8 +643,12 @@ mapping" below for exactly how existing seeded data was carried forward.
 - **`User`** — login only (email/password + bcrypt hash). Not the same
   concept as `contactOwner` (see below).
 - **`Contact`** — the lead record. Full property list:
-  - Identity: `firstName`, `lastName`, `jobTitle` (new), `email`,
-    `workPhone` (renamed from `phone`), `cellPhone` (new).
+  - Identity: `firstName`, `lastName`, `jobTitle` (new), `email` (`String?
+    @unique` — made nullable in migration
+    `20260731233629_make_contact_email_optional` specifically so CSV-imported
+    contacts without a usable email column still import; see the "Email is
+    optional" note under Import/Export below), `workPhone` (renamed from
+    `phone`), `cellPhone` (new).
   - Company: `company`, `websiteUrl` (new), `websiteTraffic: Int?` (new),
     `numberOfEmployees: Int?` (new).
   - Address (all new): `streetAddress`, `city`, `state`, `country`, `zipCode`.
