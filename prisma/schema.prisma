@@ -7,8 +7,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon's pooled (PgBouncer) connection in DATABASE_URL doesn't reliably
+  // support the postgres advisory locks Prisma Migrate takes during
+  // `migrate deploy`/`migrate dev`, which surfaces as a P1002 timeout on
+  // Vercel builds. directUrl points Migrate at Neon's direct/unpooled
+  // connection instead; the Prisma Client at runtime still uses the pooled
+  // DATABASE_URL above.
+  directUrl = env("DIRECT_URL")
 }
 
 /// A user who can log in to the CRM (NextAuth credentials provider).

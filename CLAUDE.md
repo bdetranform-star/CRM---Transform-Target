@@ -815,6 +815,17 @@ survive across deploys or serverless instances — so Postgres is required
 there; for local dev, point `DATABASE_URL` at any Postgres instance
 (local or a Neon branch).
 
+The datasource also sets `directUrl = env("DIRECT_URL")`. Neon's pooled
+(PgBouncer) connection — what `DATABASE_URL` should always point at, for
+the app's own runtime queries — doesn't reliably support the postgres
+advisory locks Prisma Migrate takes during `migrate deploy`/`migrate dev`,
+which surfaced as a `P1002` "Timed out trying to acquire a postgres
+advisory lock" failure on Vercel builds. `directUrl` gives Migrate a
+separate connection string to use instead (Neon's direct/unpooled one) —
+only the Prisma CLI reads it; `PrismaClient` at runtime always uses
+`DATABASE_URL`. Locally, where there's no pooler in front of Postgres,
+`DIRECT_URL` can just be the same value as `DATABASE_URL`.
+
 `npm run build` is `prisma generate && prisma migrate deploy && next build`,
 so pushing new migrations to the deployed branch applies them automatically
 on the next Vercel build — no manual `migrate deploy` step needed. Local
@@ -823,7 +834,9 @@ the migration file, which then gets picked up by `migrate deploy` on deploy.
 
 ## Environment variables
 
-See `.env.example`. Required: `DATABASE_URL`, `AUTH_SECRET` (NextAuth v5;
+See `.env.example`. Required: `DATABASE_URL`, `DIRECT_URL` (Neon's
+direct/unpooled connection string, used only by Prisma Migrate — see
+"Database / deployment" below), `AUTH_SECRET` (NextAuth v5;
 `NEXTAUTH_SECRET`/`NEXTAUTH_URL` are also set for compatibility). Optional,
 for the Instantly.ai stretch goal: `INSTANTLY_API_KEY`,
 `INSTANTLY_WEBHOOK_SECRET`. Optional but required for the contact detail
