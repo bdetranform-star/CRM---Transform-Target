@@ -196,6 +196,15 @@ export const contactColumns = [
       return v ? LINKEDIN_CONNECTION_STATUS_LABELS[v] : "—";
     },
   }),
+  columnHelper.accessor("linkedinConnectedOn", {
+    header: "LinkedIn Connected On",
+    // US MM/DD/YYYY format, per spec — distinct from the "MMM d, yyyy"
+    // convention used by the other date columns below.
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? format(v, "MM/dd/yyyy") : "—";
+    },
+  }),
   columnHelper.accessor("linkedinPitchNote", {
     header: "Pitch / Connection Request Note",
     enableSorting: false,

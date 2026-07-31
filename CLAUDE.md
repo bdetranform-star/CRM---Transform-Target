@@ -181,10 +181,12 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       real values (`SearchableChecklist`).
     - `number` (Website Traffic, Number of Employees): equals / greater than
       / less than / between (two inputs).
-    - `date` (Last Interested Reply, Last Contact Date, Created Date): is
-      after / is before / is between (two date inputs) / in the last N days
-      (relative, computed from `new Date()` at query time via
-      `date-fns.subDays`).
+    - `date` (Last Interested Reply, Last Contact Date, Created Date,
+      LinkedIn Connected On): is after / is before / is between (two date
+      inputs) / in the last N days (relative, computed from `new Date()` at
+      query time via `date-fns.subDays`) — `linkedinConnectedOn` reuses this
+      same filter type and `ValueEditor` UI unchanged, since it's a plain
+      nullable date column like the other three.
     - `boolean` (1st/2nd/3rd/4th Follow Up LinkedIn) — added alongside the
       original four types specifically for these fields: is Yes / is No,
       each a value-free operator exactly like `is_known`/`is_unknown` (the
@@ -320,10 +322,11 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     `/contacts/[id]` for the newly created contact instead of just closing.
     `Designation` sits in a 2-column grid next to `Company name`; a bordered
     "LinkedIn Outreach" section near the bottom of the form (right before
-    Cancel/Create) groups the remaining 8 LinkedIn fields together — LinkedIn
-    Status and Lifecycle of LinkedIn as side-by-side `Select`s, the pitch
-    note as a `Textarea`, the 4 follow-ups as a 2x2 grid of `Switch` toggles,
-    and Interested Response From as a final `Select`. Right below the Lead
+    Cancel/Create) groups the remaining 9 LinkedIn fields together — LinkedIn
+    Status and Lifecycle of LinkedIn as side-by-side `Select`s, LinkedIn
+    Connected On as a `DatePicker` right below them, the pitch note as a
+    `Textarea`, the 4 follow-ups as a 2x2 grid of `Switch` toggles, and
+    Interested Response From as a final `Select`. Right below the Lead
     source / Lead source captured row sits **Channel Tag**
     (`ChannelTagToggleGroup`, `components/channel-tags.tsx`) — a pill/chip
     multi-select, not a dropdown, since a contact can carry any combination
@@ -692,7 +695,14 @@ mapping" below for exactly how existing seeded data was carried forward.
     `20260731172730_add_linkedin_outreach_fields`): `linkedinConnectionStatus`
     (enum `LinkedinConnectionStatus`: `NOT_SENT` / `REQUEST_SENT` / `PENDING`
     / `CONNECTED` / `REJECTED` — where a connection request currently
-    stands), `linkedinPitchNote` (`String? @db.Text` — the connection
+    stands), `linkedinConnectedOn` (`DateTime? @db.Date` — see migration
+    `20260731222221_add_linkedin_connected_on` — a plain calendar date, no
+    time component, distinct from `lastContactDate`/`lastInterestedReply`
+    which are auto-set timestamps derived from `Touch` history rather than
+    manually entered; edited via the new `DatePicker` component,
+    `components/ui/date-picker.tsx`, and always displayed in US MM/DD/YYYY
+    format per spec, unlike the "MMM d, yyyy" convention the other date
+    columns use), `linkedinPitchNote` (`String? @db.Text` — the connection
     request/pitch message), `linkedinFollowUp1`–`linkedinFollowUp4`
     (`Boolean?`, one per follow-up touch), `linkedinLifecycleStage` (enum
     `LinkedinLifecycleStage`: `NOT_CONTACTED → CONNECTION_SENT → CONNECTED →
@@ -855,6 +865,13 @@ explicitly rather than left to fail at migration time.
   generated via the `shadcn` CLI — its registry fetch is blocked in this
   environment's network policy) to match the standard shadcn source/API, so
   the CLI can still be used normally in the future to add more components.
+  `popover.tsx` (`@radix-ui/react-popover`) and `calendar.tsx`
+  (`react-day-picker`) follow this same hand-written pattern; `date-picker.tsx`
+  composes them into a single `DatePicker` — a button styled like `Input`
+  that shows the selected date in US `MM/DD/YYYY` format (or a placeholder)
+  and opens a full `Calendar` popup on click rather than accepting free-text
+  entry, used by `linkedinConnectedOn` on both the New Contact form and the
+  contact detail page's `LinkedinOutreachSection`.
 - **Server Action files** (`app/actions/*.ts`) may only export async
   functions (and types) — Next.js enforces this. Put sync helpers *and any
   runtime consts* in `lib/` instead: e.g. `SAVED_VIEWS` (the saved-view

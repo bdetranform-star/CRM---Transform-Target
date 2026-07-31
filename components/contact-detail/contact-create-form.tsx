@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ChannelTagToggleGroup } from "@/components/channel-tags";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectTrigger,
@@ -75,6 +76,7 @@ const formSchema = z.object({
   leadSourceCaptured: z.union([leadSourceCapturedEnum, z.literal("")]),
   channelTags: z.array(channelTagEnum),
   linkedinConnectionStatus: z.union([linkedinConnectionStatusEnum, z.literal("")]),
+  linkedinConnectedOn: z.date().optional(),
   linkedinPitchNote: z.string(),
   linkedinFollowUp1: z.boolean(),
   linkedinFollowUp2: z.boolean(),
@@ -161,6 +163,7 @@ export function ContactCreateForm({
   const channelTags = watch("channelTags");
   const contactOwner = watch("contactOwner");
   const linkedinConnectionStatus = watch("linkedinConnectionStatus");
+  const linkedinConnectedOn = watch("linkedinConnectedOn");
   const linkedinLifecycleStage = watch("linkedinLifecycleStage");
   const interestedResponseFrom = watch("interestedResponseFrom");
   const linkedinFollowUp1 = watch("linkedinFollowUp1");
@@ -435,6 +438,14 @@ export function ContactCreateForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>LinkedIn Connected On</Label>
+            <DatePicker
+              value={linkedinConnectedOn}
+              onChange={(date) => setValue("linkedinConnectedOn", date)}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

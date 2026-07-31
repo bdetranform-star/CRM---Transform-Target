@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectTrigger,
@@ -525,6 +526,7 @@ export function LinkedinOutreachSection({ contact, onSaved }: { contact: Contact
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState({
     linkedinConnectionStatus: contact.linkedinConnectionStatus ?? "",
+    linkedinConnectedOn: contact.linkedinConnectedOn ?? undefined,
     linkedinPitchNote: contact.linkedinPitchNote ?? "",
     linkedinFollowUp1: contact.linkedinFollowUp1 ?? false,
     linkedinFollowUp2: contact.linkedinFollowUp2 ?? false,
@@ -565,6 +567,13 @@ export function LinkedinOutreachSection({ contact, onSaved }: { contact: Contact
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>LinkedIn Connected On</Label>
+            <DatePicker
+              value={values.linkedinConnectedOn}
+              onChange={(date) => setValues((s) => ({ ...s, linkedinConnectedOn: date }))}
+            />
           </div>
           <div className="flex flex-col gap-1">
             <Label>Pitch / Connection Request Note</Label>
@@ -654,6 +663,10 @@ export function LinkedinOutreachSection({ contact, onSaved }: { contact: Contact
           <Field
             label="LinkedIn Status"
             value={contact.linkedinConnectionStatus ? LINKEDIN_CONNECTION_STATUS_LABELS[contact.linkedinConnectionStatus] : null}
+          />
+          <Field
+            label="LinkedIn Connected On"
+            value={contact.linkedinConnectedOn ? format(contact.linkedinConnectedOn, "MM/dd/yyyy") : null}
           />
           <Field label="Pitch / Connection Request Note" value={contact.linkedinPitchNote} />
           <Field label="1st Follow Up LinkedIn" value={contact.linkedinFollowUp1 ? "Yes" : "No"} />

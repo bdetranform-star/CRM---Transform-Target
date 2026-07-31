@@ -81,6 +81,7 @@ export const FILTERABLE_FIELDS: FilterFieldDef[] = [
     type: "enum",
     options: optionsFrom(LINKEDIN_CONNECTION_STATUS_LABELS),
   },
+  { field: "linkedinConnectedOn", label: "LinkedIn Connected On", type: "date" },
   { field: "linkedinPitchNote", label: "Pitch / Connection Request Note", type: "string" },
   { field: "linkedinFollowUp1", label: "1st Follow Up LinkedIn", type: "boolean" },
   { field: "linkedinFollowUp2", label: "2nd Follow Up LinkedIn", type: "boolean" },

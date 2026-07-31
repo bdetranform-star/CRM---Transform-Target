@@ -197,6 +197,10 @@ export const contactCreateSchema = z.object({
     .union([linkedinConnectionStatusEnum, z.literal("")])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  linkedinConnectedOn: z
+    .union([z.coerce.date(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
   linkedinPitchNote: optionalTrimmedString,
   linkedinFollowUp1: z.boolean().optional(),
   linkedinFollowUp2: z.boolean().optional(),

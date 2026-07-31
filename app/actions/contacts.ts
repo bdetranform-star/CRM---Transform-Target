@@ -154,6 +154,7 @@ const SORTABLE_FIELDS = new Set([
   "updatedAt",
   "lastContactDate",
   "linkedinConnectionStatus",
+  "linkedinConnectedOn",
   "linkedinLifecycleStage",
   "interestedResponseFrom",
 ]);

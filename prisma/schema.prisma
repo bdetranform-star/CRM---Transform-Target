@@ -226,6 +226,10 @@ model Contact {
   /// its own Kanban board (/linkedin-lifecycle), separate from the main
   /// Lead Board's `leadStatus`.
   linkedinConnectionStatus LinkedinConnectionStatus?
+  /// The calendar date a LinkedIn connection was accepted — a plain date
+  /// (no time component), distinct from lastContactDate/lastInterestedReply
+  /// which are auto-set timestamps derived from Touch history.
+  linkedinConnectedOn      DateTime?                  @db.Date
   linkedinPitchNote        String?                    @db.Text
   linkedinFollowUp1        Boolean?
   linkedinFollowUp2        Boolean?
