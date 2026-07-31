@@ -587,7 +587,17 @@ mapping" below for exactly how existing seeded data was carried forward.
     Vercel Blob. `null` falls back to the existing initials-circle behavior
     everywhere an avatar renders (`components/contact-avatar.tsx`'s
     `ContactAvatar`, shared by the contact detail header, Board cards, and
-    the Contacts table's avatar column) — see "Key modules" below.
+    the Contacts table's avatar column) — see "Key modules" below. The
+    initials circle's background color is deterministic per contact
+    (`lib/avatar-colors.ts`'s `avatarColorForId()`, a `djb2` hash of
+    `Contact.id` mod `CATEGORICAL_PALETTE`'s 8 hues) rather than every
+    contact sharing one flat brand-green circle — the same contact always
+    gets the same color everywhere its avatar renders, since it's a pure
+    function of the immutable `id`, but different contacts spread across
+    the palette. Per-swatch text color (`AVATAR_TEXT_COLORS`) is precomputed
+    via the same WCAG relative-luminance formula used for the status pills
+    — pure black passes >= 4.5:1 on 7 of the 8 hues; violet is the one
+    swatch dark enough to need white text instead.
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)

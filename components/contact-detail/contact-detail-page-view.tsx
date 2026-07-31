@@ -185,6 +185,7 @@ export function ContactDetailPageView({
               aria-label="Change photo"
             >
               <ContactAvatar
+                id={contact.id}
                 firstName={contact.firstName}
                 lastName={contact.lastName}
                 avatarUrl={contact.avatarUrl}

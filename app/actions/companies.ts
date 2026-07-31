@@ -28,7 +28,7 @@ export type CompanySummary = {
   contactOwner: TeamMember | null;
   contactOwnerMixed: boolean;
   /** Up to the first 3 contacts (alphabetical), for the row's avatar cluster. */
-  avatars: { firstName: string; lastName: string | null; avatarUrl: string | null }[];
+  avatars: { id: string; firstName: string; lastName: string | null; avatarUrl: string | null }[];
 };
 
 const AVATAR_CLUSTER_MAX = 3;
@@ -53,6 +53,7 @@ export async function getCompanies(): Promise<CompanySummary[]> {
   const contacts = await prisma.contact.findMany({
     where: { company: { not: null } },
     select: {
+      id: true,
       company: true,
       city: true,
       state: true,
@@ -91,6 +92,7 @@ export async function getCompanies(): Promise<CompanySummary[]> {
         contactOwner,
         contactOwnerMixed: contactOwner === null,
         avatars: rows.slice(0, AVATAR_CLUSTER_MAX).map((r) => ({
+          id: r.id,
           firstName: r.firstName,
           lastName: r.lastName,
           avatarUrl: r.avatarUrl,

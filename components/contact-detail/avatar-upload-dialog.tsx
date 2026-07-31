@@ -139,7 +139,13 @@ export function AvatarUploadDialog({
               </button>
             </div>
           ) : (
-            <ContactAvatar firstName={firstName} lastName={lastName} avatarUrl={currentAvatarUrl} size={96} />
+            <ContactAvatar
+              id={contactId}
+              firstName={firstName}
+              lastName={lastName}
+              avatarUrl={currentAvatarUrl}
+              size={96}
+            />
           )}
 
           {notConfigured ? (

@@ -57,6 +57,7 @@ export const contactColumns = [
     header: "",
     cell: ({ row }) => (
       <ContactAvatar
+        id={row.original.id}
         firstName={row.original.firstName}
         lastName={row.original.lastName}
         avatarUrl={row.original.avatarUrl}

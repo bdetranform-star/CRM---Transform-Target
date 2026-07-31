@@ -1,19 +1,25 @@
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
+import { avatarColorForId } from "@/lib/avatar-colors";
 
 /**
  * Renders a contact's uploaded photo (Vercel Blob) if avatarUrl is set,
  * otherwise falls back to an initials circle — used consistently on the
- * contact detail page, Board cards, and the Contacts table.
+ * contact detail page, Board cards, and the Contacts table. The initials
+ * circle's color is deterministic per contact `id` (same contact always
+ * gets the same color, different contacts spread across the palette)
+ * rather than every contact sharing one flat brand color.
  */
 export function ContactAvatar({
+  id,
   firstName,
   lastName,
   avatarUrl,
   size = 40,
   className,
 }: {
+  id: string;
   firstName: string;
   lastName: string | null;
   avatarUrl?: string | null;
@@ -34,14 +40,18 @@ export function ContactAvatar({
   }
 
   const initials = `${firstName[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
+  const { bg, fg } = avatarColorForId(id);
 
   return (
     <div
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-[var(--brand)] font-semibold text-[var(--brand-foreground)]",
-        className
-      )}
-      style={{ width: size, height: size, fontSize: Math.max(10, size * 0.36) }}
+      className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", className)}
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.max(10, size * 0.36),
+        backgroundColor: bg,
+        color: fg,
+      }}
     >
       {initials}
     </div>
@@ -49,6 +59,7 @@ export function ContactAvatar({
 }
 
 type AvatarPerson = {
+  id: string;
   firstName: string;
   lastName: string | null;
   avatarUrl: string | null;
@@ -78,7 +89,8 @@ export function AvatarCluster({
     <div className="flex items-center">
       {shown.map((person, i) => (
         <ContactAvatar
-          key={i}
+          key={person.id}
+          id={person.id}
           firstName={person.firstName}
           lastName={person.lastName}
           avatarUrl={person.avatarUrl}

@@ -41,6 +41,7 @@ export function BoardCard({
     >
       <div className="flex items-center gap-2">
         <ContactAvatar
+          id={contact.id}
           firstName={contact.firstName}
           lastName={contact.lastName}
           avatarUrl={contact.avatarUrl}
