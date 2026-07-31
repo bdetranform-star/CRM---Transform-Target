@@ -6,6 +6,7 @@ import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { INDUSTRY_LABELS, SEQUENCE_STEPS } from "@/lib/status-config";
 import { ContactAvatar } from "@/components/contact-avatar";
+import { ChannelTagBadges } from "@/components/channel-tags";
 import type { BoardContact } from "./board-view";
 import type { Industry } from "@prisma/client";
 
@@ -65,6 +66,9 @@ export function BoardCard({
           Step: {SEQUENCE_STEPS[Math.min(contact.sequenceStep, 3)]?.label ?? "Done"}
         </span>
       </div>
+      {contact.channelTags.length > 0 && (
+        <ChannelTagBadges tags={contact.channelTags} className="mt-2" />
+      )}
     </div>
   );
 }

@@ -80,6 +80,18 @@
   --channel-call: #16a34a;
   --channel-sms: #4a3aa7;
   --channel-note: #64748b;
+
+  /* Channel Tag chip colors — light-tint bg / saturated fg pairs derived
+     from the --channel-* hues above (not the raw hues themselves, which
+     fail 4.5:1 white-text contrast for email/call), each verified >= 4.5:1. */
+  --channel-tag-email-bg: #e0f2fe;
+  --channel-tag-email-fg: #0369a1;
+  --channel-tag-linkedin-bg: #eff6ff;
+  --channel-tag-linkedin-fg: #1e40af;
+  --channel-tag-call-bg: #dcfce7;
+  --channel-tag-call-fg: #15803d;
+  --channel-tag-sms-bg: #ede9fe;
+  --channel-tag-sms-fg: #6d28d9;
 }
 
 @theme inline {

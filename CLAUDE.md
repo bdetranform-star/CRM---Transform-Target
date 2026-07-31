@@ -127,7 +127,11 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   heading, not a banner/callout), with "Lead Board" itself demoted to an
   `<h2>` underneath it for correct heading hierarchy even though its look
   is unchanged. The Dashboards page (`app/(app)/dashboard/page.tsx`) has
-  the identical heading above its own title for the same reason.
+  the identical heading above its own title for the same reason. Cards show
+  a `ChannelTagBadges` row (`components/channel-tags.tsx`) below the
+  industry/step footer whenever the contact has any `channelTags` set —
+  omitted entirely (not a "—" placeholder) when empty, matching how the
+  card already omits `company` when unset.
 - **Contacts table** (`components/contacts-table/`) — TanStack Table in
   fully **manual** mode (`manualPagination`/`manualSorting`): sorting, paging,
   and filtering all round-trip through URL search params
@@ -190,6 +194,16 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       false }`, so a never-toggled `null` reads as "No" too, consistent with
       how the toggle displays on the New Contact form and contact detail
       page.
+    - `array_enum` (Channel Tag, the only multi-value property): is any of /
+      is none of — same operator labels and the same `SearchableChecklist`
+      value editor as `enum` (the `ValueEditor` branches on the *operator*,
+      not the field type, so it needed no changes at all for this new
+      type), but `buildWhereFromFilters()` builds the Prisma clause with
+      `hasSome` instead of `in`/`notIn` since `Contact.channelTags` is a
+      native Postgres array column, not a scalar enum column — "is none of"
+      is `NOT: { hasSome: values }` rather than `notIn`, since a `channelTags`
+      array can contain other tags besides the excluded one and still needs
+      to match.
 
     A filter's value lives in `ContactFilter.value` (single scalar),
     `.values` (the multi-select operators), or `.valueMin`/`.valueMax`
@@ -309,7 +323,13 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     Cancel/Create) groups the remaining 8 LinkedIn fields together — LinkedIn
     Status and Lifecycle of LinkedIn as side-by-side `Select`s, the pitch
     note as a `Textarea`, the 4 follow-ups as a 2x2 grid of `Switch` toggles,
-    and Interested Response From as a final `Select`.
+    and Interested Response From as a final `Select`. Right below the Lead
+    source / Lead source captured row sits **Channel Tag**
+    (`ChannelTagToggleGroup`, `components/channel-tags.tsx`) — a pill/chip
+    multi-select, not a dropdown, since a contact can carry any combination
+    of the 4 channels (or none): each button independently toggles on/off,
+    filled with that channel's color when active and plain outline/gray
+    otherwise.
   - **Avatar photo upload** — clicking the avatar circle in the identity
     card opens `AvatarUploadDialog` (`components/contact-detail/
     avatar-upload-dialog.tsx`): drag-and-drop or a file picker, client-side
@@ -597,6 +617,22 @@ mapping" below for exactly how existing seeded data was carried forward.
     enum: `LINKEDIN_SALES_NAVIGATOR` / `GOOGLE_MAPS` / `GOOGLE_DORK` /
     `ONLINE_DIRECTORY` — the specific outbound-prospecting source, distinct
     from `leadSource`; backs the dashboard's "Contact Sources" widget).
+  - `channelTags: ChannelTag[]` (new, native Postgres array column,
+    `@default([])` — never `null`, so every consumer can map/spread it
+    without a null check) — a manually-set, multi-select tag of which
+    outreach channel(s) have been used to reach a contact
+    (`EMAIL_CHANNEL` / `LINKEDIN_CHANNEL` / `COLD_CALLING_CHANNEL` /
+    `TEXT_WHATSAPP_CHANNEL`), independent of both `leadSource` (a single
+    "how this lead entered the CRM" value) and `Touch.channel` (one value
+    per logged outreach action) — a contact can carry any combination, or
+    none. Edited via the pill/chip `ChannelTagToggleGroup`
+    (`components/channel-tags.tsx`) on the New Contact form and the contact
+    detail page's `LeadInfoSection`; displayed as small colored
+    `ChannelTagBadges` on the Contacts table, the contact detail page, and
+    Lead Board cards. Filterable via Advanced Filters (see the `array_enum`
+    filter type below) but not sortable, matching the existing convention
+    for other non-scalar/multi-value fields (`linkedinPitchNote`,
+    `smsOptOut`).
   - Industry: `industry` (replaced enum — see mapping table below),
     `industryDetail` (new enum, a flat list of 27 sub-industry values,
     independent of `industry` — e.g. a `FACILITY_MAINTENANCE_COMPANIES`
@@ -881,7 +917,8 @@ placeholder fallback to keep in sync.
   dividers within the green sidebar chrome), `--accent-teal`/
   `--accent-teal-foreground` (navy / white-on-navy — links, headers, the
   `teal` button variant, focus rings via `--ring`), `--status-*` (pill
-  backgrounds/foregrounds), `--channel-*` (per-channel colors).
+  backgrounds/foregrounds), `--channel-*` (per-channel colors),
+  `--channel-tag-*-bg`/`-fg` (Channel Tag chip tints — see below).
 - **Status pills** (`lib/status-config.ts`'s `LEAD_STATUS_CONFIG`, values in
   `app/globals.css`): recolored from the old blue/purple/yellow/orange set to
   tints and shades built from the brand green, navy, and black-derived
@@ -895,6 +932,16 @@ placeholder fallback to keep in sync.
   with the brand green swapped into the lead slot instead of hand-deriving a
   new ramp from scratch. `SEQUENTIAL_BRAND` (was `SEQUENTIAL_BLUE`) is brand
   green, used for the single-series daily line charts.
+- **Channel Tag chip colors** (`lib/channel-tags.ts`'s `CHANNEL_TAG_CONFIG`,
+  values in `app/globals.css`'s `--channel-tag-*-bg`/`-fg`): light-tint
+  background + saturated foreground pairs derived from the same hues as
+  `--channel-*` (email/LinkedIn/call/SMS), rather than the raw `--channel-*`
+  hues themselves — those raw hues fail 4.5:1 contrast against white text
+  for 2 of the 4 (email 4.10:1, call 3.30:1), so a *filled* saturated
+  background with white text wasn't viable for a toggle/badge. The tint
+  pairs (e.g. email: `#e0f2fe` bg / `#0369a1` fg) are separate CSS variables
+  from `--status-*` and `--channel-*` since those are validated for
+  different bg/fg combinations, not reused as-is.
 - **Deliberately left unchanged**: `lib/channel-config.tsx`'s `CHANNEL_CONFIG`
   colors represent real per-channel brand identities (e.g. LinkedIn's actual
   brand blue) independent of the CRM's own theme, so they weren't recolored

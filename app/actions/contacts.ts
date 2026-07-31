@@ -38,6 +38,7 @@ export async function getBoardContacts() {
       contactOwner: true,
       sequenceStep: true,
       avatarUrl: true,
+      channelTags: true,
     },
   });
 

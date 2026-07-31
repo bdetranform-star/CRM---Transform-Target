@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { ChannelTagToggleGroup } from "@/components/channel-tags";
 import {
   Select,
   SelectTrigger,
@@ -29,6 +30,7 @@ import {
   linkedinConnectionStatusEnum,
   linkedinLifecycleStageEnum,
   interestedResponseChannelEnum,
+  channelTagEnum,
 } from "@/lib/validations";
 import { createContact, getContactOwnerPool } from "@/app/actions/contacts";
 import {
@@ -71,6 +73,7 @@ const formSchema = z.object({
   industryDetail: z.union([industryDetailEnum, z.literal("")]),
   leadSource: leadSourceEnum,
   leadSourceCaptured: z.union([leadSourceCapturedEnum, z.literal("")]),
+  channelTags: z.array(channelTagEnum),
   linkedinConnectionStatus: z.union([linkedinConnectionStatusEnum, z.literal("")]),
   linkedinPitchNote: z.string(),
   linkedinFollowUp1: z.boolean(),
@@ -127,6 +130,7 @@ export function ContactCreateForm({
       industryDetail: "",
       leadSource: "OTHER",
       leadSourceCaptured: "",
+      channelTags: [],
       linkedinConnectionStatus: "",
       linkedinPitchNote: "",
       linkedinFollowUp1: false,
@@ -154,6 +158,7 @@ export function ContactCreateForm({
   const industryDetail = watch("industryDetail");
   const leadSource = watch("leadSource");
   const leadSourceCaptured = watch("leadSourceCaptured");
+  const channelTags = watch("channelTags");
   const contactOwner = watch("contactOwner");
   const linkedinConnectionStatus = watch("linkedinConnectionStatus");
   const linkedinLifecycleStage = watch("linkedinLifecycleStage");
@@ -376,6 +381,14 @@ export function ContactCreateForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Channel Tag</Label>
+        <ChannelTagToggleGroup
+          value={channelTags}
+          onChange={(next) => setValue("channelTags", next)}
+        />
       </div>
 
       <div className="border-t border-border pt-4">

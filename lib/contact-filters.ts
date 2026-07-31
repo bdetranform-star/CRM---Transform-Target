@@ -14,8 +14,9 @@ import {
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
 } from "@/lib/status-config";
+import { CHANNEL_TAG_LABELS } from "@/lib/channel-tags";
 
-export type FilterFieldType = "string" | "phone" | "enum" | "number" | "date" | "boolean";
+export type FilterFieldType = "string" | "phone" | "enum" | "number" | "date" | "boolean" | "array_enum";
 
 export type FilterFieldDef = {
   field: string;
@@ -63,6 +64,8 @@ export const FILTERABLE_FIELDS: FilterFieldDef[] = [
     type: "enum",
     options: optionsFrom(LEAD_SOURCE_CAPTURED_LABELS),
   },
+  // Multi-select tag property — a Contact can carry any combination of these
+  { field: "channelTags", label: "Channel Tag", type: "array_enum", options: optionsFrom(CHANNEL_TAG_LABELS) },
   // Number properties
   { field: "websiteTraffic", label: "Website Traffic", type: "number" },
   { field: "numberOfEmployees", label: "Number of Employees", type: "number" },
@@ -130,6 +133,10 @@ export const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator;
     { value: "is_unknown", label: "is unknown" },
   ],
   enum: [
+    { value: "is_any_of", label: "is any of" },
+    { value: "is_none_of", label: "is none of" },
+  ],
+  array_enum: [
     { value: "is_any_of", label: "is any of" },
     { value: "is_none_of", label: "is none of" },
   ],
@@ -244,6 +251,15 @@ export function buildWhereFromFilters(filters: ContactFilter[]): Prisma.ContactW
         and.push({ [def.field]: { in: values } } as Prisma.ContactWhereInput);
       } else if (filter.operator === "is_none_of") {
         and.push({ [def.field]: { notIn: values } } as Prisma.ContactWhereInput);
+      }
+    } else if (def.type === "array_enum") {
+      const allowed = new Set(def.options?.map((o) => o.value));
+      const values = (filter.values ?? []).filter((v) => allowed.has(v));
+      if (values.length === 0) continue;
+      if (filter.operator === "is_any_of") {
+        and.push({ [def.field]: { hasSome: values } } as Prisma.ContactWhereInput);
+      } else if (filter.operator === "is_none_of") {
+        and.push({ NOT: { [def.field]: { hasSome: values } } } as Prisma.ContactWhereInput);
       }
     } else if (def.type === "number") {
       if (filter.operator === "between") {

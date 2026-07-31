@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/status-pill";
 import { ContactAvatar } from "@/components/contact-avatar";
+import { ChannelTagBadges } from "@/components/channel-tags";
 import {
   INDUSTRY_LABELS,
   INDUSTRY_DETAIL_LABELS,
@@ -131,6 +132,11 @@ export const contactColumns = [
       const v = info.getValue();
       return v ? LEAD_SOURCE_CAPTURED_LABELS[v] : "—";
     },
+  }),
+  columnHelper.accessor("channelTags", {
+    header: "Channel Tag",
+    cell: (info) => <ChannelTagBadges tags={info.getValue()} />,
+    enableSorting: false,
   }),
   columnHelper.accessor("city", {
     header: "City",

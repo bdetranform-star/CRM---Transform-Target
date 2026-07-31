@@ -178,6 +178,17 @@ enum InterestedResponseChannel {
   TEXT
 }
 
+/// Free-form tagging of which outreach channel(s) have been used to reach a
+/// contact — a contact can carry any combination (or none), unlike LeadSource
+/// (a single "how this lead entered the CRM" value) or Touch.channel (one
+/// value per logged action). Purely a manual, user-set label.
+enum ChannelTag {
+  EMAIL_CHANNEL
+  LINKEDIN_CHANNEL
+  COLD_CALLING_CHANNEL
+  TEXT_WHATSAPP_CHANNEL
+}
+
 model Contact {
   id             String   @id @default(uuid())
   firstName      String
@@ -204,6 +215,11 @@ model Contact {
   leadSource     LeadSource     @default(OTHER)
   /// How this lead's data was originally sourced/scraped (distinct from leadSource).
   leadSourceCaptured LeadSourceCaptured?
+  /// Which outreach channel(s) have been used to reach this contact — a
+  /// manually-set multi-select tag, independent of leadSource/leadStatus.
+  /// Empty array (not null) when untagged, so it can always be spread/mapped
+  /// without a null check.
+  channelTags    ChannelTag[]   @default([])
 
   /// LinkedIn outreach tracking — all nullable since not every contact goes
   /// through a LinkedIn-specific cadence. `linkedinLifecycleStage` powers

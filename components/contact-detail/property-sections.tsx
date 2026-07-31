@@ -19,6 +19,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { updateContact } from "@/app/actions/contacts";
+import { ChannelTagToggleGroup, ChannelTagBadges } from "@/components/channel-tags";
 import {
   LIFECYCLE_STAGE_LABELS,
   LEAD_STATUS_CONFIG,
@@ -339,6 +340,7 @@ export function LeadInfoSection({ contact, onSaved }: { contact: Contact; onSave
     contactOwner: contact.contactOwner,
     leadSource: contact.leadSource,
     leadSourceCaptured: contact.leadSourceCaptured ?? "",
+    channelTags: contact.channelTags,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -481,6 +483,13 @@ export function LeadInfoSection({ contact, onSaved }: { contact: Contact; onSave
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-col gap-1">
+            <Label>Channel Tag</Label>
+            <ChannelTagToggleGroup
+              value={values.channelTags}
+              onChange={(next) => setValues((s) => ({ ...s, channelTags: next }))}
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
               Cancel
@@ -505,6 +514,7 @@ export function LeadInfoSection({ contact, onSaved }: { contact: Contact; onSave
             label="Lead source captured"
             value={contact.leadSourceCaptured ? LEAD_SOURCE_CAPTURED_LABELS[contact.leadSourceCaptured] : null}
           />
+          <Field label="Channel Tag" value={<ChannelTagBadges tags={contact.channelTags} />} />
         </div>
       )}
     </SectionShell>

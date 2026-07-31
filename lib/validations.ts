@@ -116,6 +116,13 @@ export const linkedinLifecycleStageEnum = z.enum([
 
 export const interestedResponseChannelEnum = z.enum(["EMAIL", "LINKEDIN", "CALLING", "TEXT"]);
 
+export const channelTagEnum = z.enum([
+  "EMAIL_CHANNEL",
+  "LINKEDIN_CHANNEL",
+  "COLD_CALLING_CHANNEL",
+  "TEXT_WHATSAPP_CHANNEL",
+]);
+
 export const channelEnum = z.enum(["EMAIL", "LINKEDIN", "CALL", "SMS", "NOTE"]);
 export const directionEnum = z.enum(["OUTBOUND", "INBOUND"]);
 
@@ -175,6 +182,7 @@ export const contactCreateSchema = z.object({
     .union([leadSourceCapturedEnum, z.literal("")])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  channelTags: z.array(channelTagEnum).default([]),
   websiteUrl: optionalTrimmedString,
   websiteTraffic: optionalNonNegativeInt,
   numberOfEmployees: optionalNonNegativeInt,
@@ -221,6 +229,7 @@ export const contactUpdateSchema = contactCreateSchema.partial().extend({
   leadSource: leadSourceEnum.optional(),
   sequenceStep: z.coerce.number().int().min(0).max(10).optional(),
   smsOptOut: z.boolean().optional(),
+  channelTags: z.array(channelTagEnum).optional(),
 });
 
 export const bulkStatusChangeSchema = z.object({

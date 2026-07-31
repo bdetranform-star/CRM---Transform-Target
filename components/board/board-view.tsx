@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 import { updateContactStatus } from "@/app/actions/contacts";
 import { LEAD_STATUS_ORDER, LEAD_STATUS_CONFIG } from "@/lib/status-config";
-import type { LeadStatus } from "@prisma/client";
+import type { LeadStatus, ChannelTag } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { BoardCard } from "./board-card";
@@ -37,6 +37,7 @@ export type BoardContact = {
   contactOwner: string;
   sequenceStep: number;
   avatarUrl: string | null;
+  channelTags: ChannelTag[];
 };
 
 export function BoardView({
