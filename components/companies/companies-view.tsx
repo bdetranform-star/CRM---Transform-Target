@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { AvatarCluster } from "@/components/contact-avatar";
 import type { CompanySummary } from "@/app/actions/companies";
 import { CompanyBulkEditDialog } from "./company-bulk-edit-dialog";
 
@@ -84,6 +85,7 @@ export function CompaniesView({ companies }: { companies: CompanySummary[] }) {
                   aria-label="Select all companies"
                 />
               </TableHead>
+              <TableHead className="w-16"></TableHead>
               <TableHead>Company Name</TableHead>
               <TableHead>Contacts</TableHead>
               <TableHead>City</TableHead>
@@ -106,6 +108,9 @@ export function CompaniesView({ companies }: { companies: CompanySummary[] }) {
                     onCheckedChange={() => toggle(company.name)}
                     aria-label={`Select ${company.name}`}
                   />
+                </TableCell>
+                <TableCell>
+                  <AvatarCluster people={company.avatars} totalCount={company.contactCount} size={28} />
                 </TableCell>
                 <TableCell className="font-medium">{company.name}</TableCell>
                 <TableCell>{company.contactCount}</TableCell>

@@ -387,6 +387,18 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   every contact at that company agrees (`rollUp<T>()` helper) — otherwise the
   rolled-up field shows blank rather than picking one contact's value
   arbitrarily. Clicking a company links to `/contacts` pre-filtered to it.
+  - **Avatar cluster** — since a company row has no single contact to show
+    an avatar for, `getCompanies()` returns each company's first 3 contacts
+    (alphabetical by first name, for a stable row-to-row identity across
+    reloads) as `avatars`, rendered via the shared `AvatarCluster` component
+    (`components/contact-avatar.tsx`) as overlapping 28px circles — photos
+    where `avatarUrl` is set, the existing initials-circle fallback
+    otherwise (both via the same `ContactAvatar` this component wraps, so
+    there's one fallback implementation, not a duplicate). A company with
+    more than 3 contacts collapses the remainder into a trailing "+N" circle
+    rather than growing the stack; `totalCount` (the company's real
+    `contactCount`, not `avatars.length`) drives that count so it stays
+    correct even though only 3 contacts' avatar data is ever fetched.
   - **Bulk edit** (checkboxes on `CompaniesView`, `company-bulk-edit-dialog.tsx`)
     — select 1+ companies and bulk-set **Industry** or **Contact Owner**
     across every `Contact` under those company names via

@@ -27,7 +27,11 @@ export type CompanySummary = {
   industryMixed: boolean;
   contactOwner: TeamMember | null;
   contactOwnerMixed: boolean;
+  /** Up to the first 3 contacts (alphabetical), for the row's avatar cluster. */
+  avatars: { firstName: string; lastName: string | null; avatarUrl: string | null }[];
 };
+
+const AVATAR_CLUSTER_MAX = 3;
 
 /** Returns "the single consistent value" across contacts, or null if they disagree or are all empty. */
 function rollUp<T>(values: (T | null)[]): T | null {
@@ -56,7 +60,11 @@ export async function getCompanies(): Promise<CompanySummary[]> {
       numberOfEmployees: true,
       industry: true,
       contactOwner: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
     },
+    orderBy: { firstName: "asc" },
   });
 
   const byCompany = new Map<string, typeof contacts>();
@@ -82,6 +90,11 @@ export async function getCompanies(): Promise<CompanySummary[]> {
         industryMixed: industry === null,
         contactOwner,
         contactOwnerMixed: contactOwner === null,
+        avatars: rows.slice(0, AVATAR_CLUSTER_MAX).map((r) => ({
+          firstName: r.firstName,
+          lastName: r.lastName,
+          avatarUrl: r.avatarUrl,
+        })),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
