@@ -96,7 +96,12 @@ function ValueEditor({
   def: FilterFieldDef;
   onChange: (patch: Partial<ContactFilter>) => void;
 }) {
-  if (filter.operator === "is_known" || filter.operator === "is_unknown") {
+  if (
+    filter.operator === "is_known" ||
+    filter.operator === "is_unknown" ||
+    filter.operator === "is_true" ||
+    filter.operator === "is_false"
+  ) {
     return null;
   }
 

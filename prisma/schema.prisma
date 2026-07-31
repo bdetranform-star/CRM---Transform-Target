@@ -146,6 +146,38 @@ enum DealStage {
   LOST
 }
 
+/// Where a LinkedIn connection request currently stands for this contact —
+/// distinct from LinkedinLifecycleStage, which tracks the broader LinkedIn
+/// outreach pipeline (a Kanban stage), not just the connection request itself.
+enum LinkedinConnectionStatus {
+  NOT_SENT
+  REQUEST_SENT
+  PENDING
+  CONNECTED
+  REJECTED
+}
+
+/// Pipeline stage for the LinkedIn-specific outreach Kanban board (separate
+/// from the main Lead Board's LeadStatus) — powers /linkedin-lifecycle.
+enum LinkedinLifecycleStage {
+  NOT_CONTACTED
+  CONNECTION_SENT
+  CONNECTED
+  FOLLOW_UP_IN_PROGRESS
+  INTERESTED
+  NOT_INTERESTED
+}
+
+/// Which channel a contact used to respond once interested, captured
+/// separately from LeadSource (how they entered the CRM) and Touch.channel
+/// (how a given outreach action was logged).
+enum InterestedResponseChannel {
+  EMAIL
+  LINKEDIN
+  CALLING
+  TEXT
+}
+
 model Contact {
   id             String   @id @default(uuid())
   firstName      String
@@ -156,6 +188,10 @@ model Contact {
   cellPhone      String?
   linkedinUrl    String?
   company        String?
+  /// Person's title as tracked for outreach purposes — distinct from
+  /// jobTitle, which is the CRM's own identity field; kept alongside
+  /// `company` since that's where it's entered on the New Contact form.
+  designation    String?
   /// Public URL of the uploaded photo (Vercel Blob). Null falls back to an
   /// initials circle everywhere the avatar is rendered.
   avatarUrl      String?
@@ -168,6 +204,19 @@ model Contact {
   leadSource     LeadSource     @default(OTHER)
   /// How this lead's data was originally sourced/scraped (distinct from leadSource).
   leadSourceCaptured LeadSourceCaptured?
+
+  /// LinkedIn outreach tracking — all nullable since not every contact goes
+  /// through a LinkedIn-specific cadence. `linkedinLifecycleStage` powers
+  /// its own Kanban board (/linkedin-lifecycle), separate from the main
+  /// Lead Board's `leadStatus`.
+  linkedinConnectionStatus LinkedinConnectionStatus?
+  linkedinPitchNote        String?                    @db.Text
+  linkedinFollowUp1        Boolean?
+  linkedinFollowUp2        Boolean?
+  linkedinFollowUp3        Boolean?
+  linkedinFollowUp4        Boolean?
+  linkedinLifecycleStage   LinkedinLifecycleStage?
+  interestedResponseFrom   InterestedResponseChannel?
 
   websiteUrl        String?
   websiteTraffic    Int?
@@ -207,6 +256,7 @@ model Contact {
   @@index([contactOwner])
   @@index([sequenceStep])
   @@index([company])
+  @@index([linkedinLifecycleStage])
 }
 
 enum ChatRole {

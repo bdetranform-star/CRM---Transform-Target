@@ -97,6 +97,25 @@ export const dealStageEnum = z.enum([
   "LOST",
 ]);
 
+export const linkedinConnectionStatusEnum = z.enum([
+  "NOT_SENT",
+  "REQUEST_SENT",
+  "PENDING",
+  "CONNECTED",
+  "REJECTED",
+]);
+
+export const linkedinLifecycleStageEnum = z.enum([
+  "NOT_CONTACTED",
+  "CONNECTION_SENT",
+  "CONNECTED",
+  "FOLLOW_UP_IN_PROGRESS",
+  "INTERESTED",
+  "NOT_INTERESTED",
+]);
+
+export const interestedResponseChannelEnum = z.enum(["EMAIL", "LINKEDIN", "CALLING", "TEXT"]);
+
 export const channelEnum = z.enum(["EMAIL", "LINKEDIN", "CALL", "SMS", "NOTE"]);
 export const directionEnum = z.enum(["OUTBOUND", "INBOUND"]);
 
@@ -142,6 +161,7 @@ export const contactCreateSchema = z.object({
   cellPhone: optionalTrimmedString,
   linkedinUrl: optionalTrimmedString,
   company: optionalTrimmedString,
+  designation: optionalTrimmedString,
   lifecycleStage: lifecycleStageEnum.default("LEAD"),
   leadStatus: leadStatusEnum.default("NEW_LEAD"),
   industry: industryEnum.default("FACILITY_MAINTENANCE_COMPANIES"),
@@ -165,6 +185,23 @@ export const contactCreateSchema = z.object({
   zipCode: optionalTrimmedString,
   sequenceStep: z.coerce.number().int().min(0).max(10).default(0),
   smsOptOut: z.boolean().default(false),
+  linkedinConnectionStatus: z
+    .union([linkedinConnectionStatusEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  linkedinPitchNote: optionalTrimmedString,
+  linkedinFollowUp1: z.boolean().optional(),
+  linkedinFollowUp2: z.boolean().optional(),
+  linkedinFollowUp3: z.boolean().optional(),
+  linkedinFollowUp4: z.boolean().optional(),
+  linkedinLifecycleStage: z
+    .union([linkedinLifecycleStageEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  interestedResponseFrom: z
+    .union([interestedResponseChannelEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
 });
 
 export const contactUpdateSchema = contactCreateSchema.partial().extend({

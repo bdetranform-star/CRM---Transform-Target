@@ -10,9 +10,12 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_CAPTURED_LABELS,
   TEAM_MEMBER_LABELS,
+  LINKEDIN_CONNECTION_STATUS_LABELS,
+  LINKEDIN_LIFECYCLE_STAGE_LABELS,
+  INTERESTED_RESPONSE_CHANNEL_LABELS,
 } from "@/lib/status-config";
 
-export type FilterFieldType = "string" | "phone" | "enum" | "number" | "date";
+export type FilterFieldType = "string" | "phone" | "enum" | "number" | "date" | "boolean";
 
 export type FilterFieldDef = {
   field: string;
@@ -67,6 +70,31 @@ export const FILTERABLE_FIELDS: FilterFieldDef[] = [
   { field: "lastInterestedReply", label: "Last Interested Reply", type: "date" },
   { field: "lastContactDate", label: "Last Contact Date", type: "date" },
   { field: "createdAt", label: "Created Date", type: "date" },
+  // LinkedIn outreach properties
+  { field: "designation", label: "Designation", type: "string" },
+  {
+    field: "linkedinConnectionStatus",
+    label: "LinkedIn Status",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_CONNECTION_STATUS_LABELS),
+  },
+  { field: "linkedinPitchNote", label: "Pitch / Connection Request Note", type: "string" },
+  { field: "linkedinFollowUp1", label: "1st Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp2", label: "2nd Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp3", label: "3rd Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp4", label: "4th Follow Up LinkedIn", type: "boolean" },
+  {
+    field: "linkedinLifecycleStage",
+    label: "Lifecycle of LinkedIn",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_LIFECYCLE_STAGE_LABELS),
+  },
+  {
+    field: "interestedResponseFrom",
+    label: "Interested Response From",
+    type: "enum",
+    options: optionsFrom(INTERESTED_RESPONSE_CHANNEL_LABELS),
+  },
 ];
 
 export const FILTER_FIELD_MAP: Record<string, FilterFieldDef> = Object.fromEntries(
@@ -85,7 +113,9 @@ export type FilterOperator =
   | "between"
   | "after"
   | "before"
-  | "in_last_days";
+  | "in_last_days"
+  | "is_true"
+  | "is_false";
 
 export const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label: string }[]> = {
   string: [
@@ -114,6 +144,10 @@ export const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator;
     { value: "before", label: "is before" },
     { value: "between", label: "is between" },
     { value: "in_last_days", label: "in the last (days)" },
+  ],
+  boolean: [
+    { value: "is_true", label: "is Yes" },
+    { value: "is_false", label: "is No" },
   ],
 };
 
@@ -145,6 +179,8 @@ const filterOperatorSchema = z.enum([
   "after",
   "before",
   "in_last_days",
+  "is_true",
+  "is_false",
 ]);
 
 /**
@@ -175,6 +211,7 @@ export function isFilterComplete(filter: ContactFilter): boolean {
   const def = FILTER_FIELD_MAP[filter.field];
   if (!def) return false;
   if (filter.operator === "is_known" || filter.operator === "is_unknown") return true;
+  if (filter.operator === "is_true" || filter.operator === "is_false") return true;
   if (filter.operator === "is_any_of" || filter.operator === "is_none_of") {
     return (filter.values?.length ?? 0) > 0;
   }
@@ -237,6 +274,14 @@ export function buildWhereFromFilters(filters: ContactFilter[]): Prisma.ContactW
         if (filter.operator === "before") and.push({ [def.field]: { lt: date } } as Prisma.ContactWhereInput);
         else and.push({ [def.field]: { gt: date } } as Prisma.ContactWhereInput);
       }
+    } else if (def.type === "boolean") {
+      if (filter.operator === "is_true") {
+        and.push({ [def.field]: true } as Prisma.ContactWhereInput);
+      } else if (filter.operator === "is_false") {
+        // Nullable booleans: "is No" should catch both an explicit `false`
+        // and a never-touched `null`, not just literal false.
+        and.push({ [def.field]: { not: true } } as Prisma.ContactWhereInput);
+      }
     }
   }
 
@@ -253,7 +298,12 @@ export function describeFilter(filter: ContactFilter): string {
   if (!def) return "";
   const opLabel = OPERATORS_BY_TYPE[def.type].find((o) => o.value === filter.operator)?.label ?? filter.operator;
 
-  if (filter.operator === "is_known" || filter.operator === "is_unknown") {
+  if (
+    filter.operator === "is_known" ||
+    filter.operator === "is_unknown" ||
+    filter.operator === "is_true" ||
+    filter.operator === "is_false"
+  ) {
     return `${def.label} ${opLabel}`;
   }
   if (filter.operator === "is_any_of" || filter.operator === "is_none_of") {

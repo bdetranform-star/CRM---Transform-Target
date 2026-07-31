@@ -14,8 +14,9 @@ import {
   leadStatusEnum,
   industryEnum,
   teamMemberEnum,
+  linkedinLifecycleStageEnum,
 } from "@/lib/validations";
-import { LEAD_STATUS_ORDER } from "@/lib/status-config";
+import { LEAD_STATUS_ORDER, LINKEDIN_LIFECYCLE_STAGE_ORDER, LINKEDIN_LIFECYCLE_STAGE_DEFAULT } from "@/lib/status-config";
 import { TEAM_MEMBERS } from "@/lib/contact-owners";
 import { buildWhereFromFilters, contactFilterSchema, type ContactFilter } from "@/lib/contact-filters";
 import { bulkEditContactsSchema, buildBulkUpdateData } from "@/lib/contact-bulk-edit";
@@ -51,6 +52,65 @@ export async function getBoardContacts() {
   return grouped;
 }
 
+/**
+ * Contacts grouped by `linkedinLifecycleStage` for the separate LinkedIn
+ * Lifecycle board (/linkedin-lifecycle) — distinct from the main Lead Board,
+ * which groups by `leadStatus`. The field is nullable (not every contact
+ * goes through LinkedIn outreach), so contacts with no stage set yet are
+ * bucketed into the leftmost "Not Contacted" column for display; the
+ * underlying value stays null until the contact is actually dragged.
+ */
+export async function getLinkedinLifecycleBoardContacts() {
+  await requireAuth();
+
+  const rows = await prisma.contact.findMany({
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      company: true,
+      email: true,
+      linkedinLifecycleStage: true,
+      linkedinConnectionStatus: true,
+      contactOwner: true,
+      avatarUrl: true,
+    },
+  });
+
+  // Display-only default: a contact with no stage set yet shows up in the
+  // leftmost "Not Contacted" column, but the DB value stays null until the
+  // contact is actually dragged (see updateContactLinkedinLifecycleStage()).
+  const contacts = rows.map((r) => ({
+    ...r,
+    linkedinLifecycleStage: r.linkedinLifecycleStage ?? LINKEDIN_LIFECYCLE_STAGE_DEFAULT,
+  }));
+
+  const grouped = Object.fromEntries(
+    LINKEDIN_LIFECYCLE_STAGE_ORDER.map((stage) => [stage, [] as typeof contacts])
+  ) as Record<(typeof LINKEDIN_LIFECYCLE_STAGE_ORDER)[number], typeof contacts>;
+
+  for (const contact of contacts) {
+    grouped[contact.linkedinLifecycleStage].push(contact);
+  }
+
+  return grouped;
+}
+
+export async function updateContactLinkedinLifecycleStage(id: string, stage: string) {
+  await requireAuth();
+  const parsedId = z.string().uuid().parse(id);
+  const parsedStage = linkedinLifecycleStageEnum.parse(stage);
+
+  const contact = await prisma.contact.update({
+    where: { id: parsedId },
+    data: { linkedinLifecycleStage: parsedStage },
+  });
+  revalidatePath("/linkedin-lifecycle");
+  revalidatePath("/contacts");
+  return contact;
+}
+
 function savedViewWhere(view?: string): Prisma.ContactWhereInput {
   switch (view) {
     case SAVED_VIEWS.OPEN_OPPORTUNITIES:
@@ -82,6 +142,7 @@ const SORTABLE_FIELDS = new Set([
   "lastName",
   "email",
   "company",
+  "designation",
   "contactOwner",
   "leadStatus",
   "lifecycleStage",
@@ -91,6 +152,9 @@ const SORTABLE_FIELDS = new Set([
   "createdAt",
   "updatedAt",
   "lastContactDate",
+  "linkedinConnectionStatus",
+  "linkedinLifecycleStage",
+  "interestedResponseFrom",
 ]);
 
 export async function getContactsTable(params: ContactsTableParams) {
@@ -237,6 +301,7 @@ export async function updateContact(input: unknown) {
   revalidatePath("/");
   revalidatePath("/contacts");
   revalidatePath("/linkedin");
+  revalidatePath("/linkedin-lifecycle");
   revalidatePath("/calls");
   return contact;
 }

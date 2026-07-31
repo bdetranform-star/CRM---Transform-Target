@@ -9,6 +9,8 @@ import type { Contact } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectTrigger,
@@ -25,6 +27,9 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_CAPTURED_LABELS,
   TEAM_MEMBER_LABELS,
+  LINKEDIN_CONNECTION_STATUS_LABELS,
+  LINKEDIN_LIFECYCLE_STAGE_LABELS,
+  INTERESTED_RESPONSE_CHANNEL_LABELS,
 } from "@/lib/status-config";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -195,6 +200,7 @@ export function CompanyInfoSection({ contact, onSaved }: { contact: Contact; onS
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState({
     company: contact.company ?? "",
+    designation: contact.designation ?? "",
     websiteUrl: contact.websiteUrl ?? "",
     numberOfEmployees: contact.numberOfEmployees?.toString() ?? "",
     streetAddress: contact.streetAddress ?? "",
@@ -223,6 +229,13 @@ export function CompanyInfoSection({ contact, onSaved }: { contact: Contact; onS
             <Input
               value={values.company}
               onChange={(e) => setValues((v) => ({ ...v, company: e.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Designation</Label>
+            <Input
+              value={values.designation}
+              onChange={(e) => setValues((v) => ({ ...v, designation: e.target.value }))}
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -287,6 +300,7 @@ export function CompanyInfoSection({ contact, onSaved }: { contact: Contact; onS
       ) : (
         <div className="flex flex-col gap-3">
           <Field label="Company name" value={contact.company} />
+          <Field label="Designation" value={contact.designation} />
           <Field
             label="Website"
             value={
@@ -490,6 +504,159 @@ export function LeadInfoSection({ contact, onSaved }: { contact: Contact; onSave
           <Field
             label="Lead source captured"
             value={contact.leadSourceCaptured ? LEAD_SOURCE_CAPTURED_LABELS[contact.leadSourceCaptured] : null}
+          />
+        </div>
+      )}
+    </SectionShell>
+  );
+}
+
+export function LinkedinOutreachSection({ contact, onSaved }: { contact: Contact; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [values, setValues] = useState({
+    linkedinConnectionStatus: contact.linkedinConnectionStatus ?? "",
+    linkedinPitchNote: contact.linkedinPitchNote ?? "",
+    linkedinFollowUp1: contact.linkedinFollowUp1 ?? false,
+    linkedinFollowUp2: contact.linkedinFollowUp2 ?? false,
+    linkedinFollowUp3: contact.linkedinFollowUp3 ?? false,
+    linkedinFollowUp4: contact.linkedinFollowUp4 ?? false,
+    linkedinLifecycleStage: contact.linkedinLifecycleStage ?? "",
+    interestedResponseFrom: contact.interestedResponseFrom ?? "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSave() {
+    setSubmitting(true);
+    await save(values, contact.id, () => {
+      setEditing(false);
+      onSaved();
+    });
+    setSubmitting(false);
+  }
+
+  return (
+    <SectionShell title="LinkedIn Outreach" editing={editing} onEdit={() => setEditing(true)}>
+      {editing ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <Label>LinkedIn Status</Label>
+            <Select
+              value={values.linkedinConnectionStatus || undefined}
+              onValueChange={(v) => setValues((s) => ({ ...s, linkedinConnectionStatus: v as typeof s.linkedinConnectionStatus }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(LINKEDIN_CONNECTION_STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Pitch / Connection Request Note</Label>
+            <Textarea
+              value={values.linkedinPitchNote}
+              onChange={(e) => setValues((v) => ({ ...v, linkedinPitchNote: e.target.value }))}
+              rows={3}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">1st Follow Up LinkedIn</Label>
+              <Switch
+                checked={values.linkedinFollowUp1}
+                onCheckedChange={(v) => setValues((s) => ({ ...s, linkedinFollowUp1: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">2nd Follow Up LinkedIn</Label>
+              <Switch
+                checked={values.linkedinFollowUp2}
+                onCheckedChange={(v) => setValues((s) => ({ ...s, linkedinFollowUp2: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">3rd Follow Up LinkedIn</Label>
+              <Switch
+                checked={values.linkedinFollowUp3}
+                onCheckedChange={(v) => setValues((s) => ({ ...s, linkedinFollowUp3: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">4th Follow Up LinkedIn</Label>
+              <Switch
+                checked={values.linkedinFollowUp4}
+                onCheckedChange={(v) => setValues((s) => ({ ...s, linkedinFollowUp4: v }))}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Lifecycle of LinkedIn</Label>
+            <Select
+              value={values.linkedinLifecycleStage || undefined}
+              onValueChange={(v) => setValues((s) => ({ ...s, linkedinLifecycleStage: v as typeof s.linkedinLifecycleStage }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(LINKEDIN_LIFECYCLE_STAGE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Interested Response From</Label>
+            <Select
+              value={values.interestedResponseFrom || undefined}
+              onValueChange={(v) => setValues((s) => ({ ...s, interestedResponseFrom: v as typeof s.interestedResponseFrom }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(INTERESTED_RESPONSE_CHANNEL_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={submitting}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Field
+            label="LinkedIn Status"
+            value={contact.linkedinConnectionStatus ? LINKEDIN_CONNECTION_STATUS_LABELS[contact.linkedinConnectionStatus] : null}
+          />
+          <Field label="Pitch / Connection Request Note" value={contact.linkedinPitchNote} />
+          <Field label="1st Follow Up LinkedIn" value={contact.linkedinFollowUp1 ? "Yes" : "No"} />
+          <Field label="2nd Follow Up LinkedIn" value={contact.linkedinFollowUp2 ? "Yes" : "No"} />
+          <Field label="3rd Follow Up LinkedIn" value={contact.linkedinFollowUp3 ? "Yes" : "No"} />
+          <Field label="4th Follow Up LinkedIn" value={contact.linkedinFollowUp4 ? "Yes" : "No"} />
+          <Field
+            label="Lifecycle of LinkedIn"
+            value={contact.linkedinLifecycleStage ? LINKEDIN_LIFECYCLE_STAGE_LABELS[contact.linkedinLifecycleStage] : null}
+          />
+          <Field
+            label="Interested Response From"
+            value={contact.interestedResponseFrom ? INTERESTED_RESPONSE_CHANNEL_LABELS[contact.interestedResponseFrom] : null}
           />
         </div>
       )}

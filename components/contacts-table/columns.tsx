@@ -15,6 +15,9 @@ import {
   LEAD_SOURCE_CAPTURED_LABELS,
   LIFECYCLE_STAGE_LABELS,
   TEAM_MEMBER_LABELS,
+  LINKEDIN_CONNECTION_STATUS_LABELS,
+  LINKEDIN_LIFECYCLE_STAGE_LABELS,
+  INTERESTED_RESPONSE_CHANNEL_LABELS,
 } from "@/lib/status-config";
 
 export type ContactRow = Omit<Contact, never> & {
@@ -89,6 +92,10 @@ export const contactColumns = [
   }),
   columnHelper.accessor("company", {
     header: "Company Name",
+    cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("designation", {
+    header: "Designation",
     cell: (info) => info.getValue() ?? "—",
   }),
   columnHelper.accessor("contactOwner", {
@@ -175,6 +182,52 @@ export const contactColumns = [
       ) : (
         "—"
       ),
+  }),
+  columnHelper.accessor("linkedinConnectionStatus", {
+    header: "LinkedIn Status",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? LINKEDIN_CONNECTION_STATUS_LABELS[v] : "—";
+    },
+  }),
+  columnHelper.accessor("linkedinPitchNote", {
+    header: "Pitch / Connection Request Note",
+    enableSorting: false,
+    cell: (info) => {
+      const v = info.getValue();
+      if (!v) return "—";
+      return v.length > 60 ? `${v.slice(0, 60)}…` : v;
+    },
+  }),
+  columnHelper.accessor("linkedinFollowUp1", {
+    header: "1st Follow Up LinkedIn",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinFollowUp2", {
+    header: "2nd Follow Up LinkedIn",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinFollowUp3", {
+    header: "3rd Follow Up LinkedIn",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinFollowUp4", {
+    header: "4th Follow Up LinkedIn",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinLifecycleStage", {
+    header: "Lifecycle of LinkedIn",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? LINKEDIN_LIFECYCLE_STAGE_LABELS[v] : "—";
+    },
+  }),
+  columnHelper.accessor("interestedResponseFrom", {
+    header: "Interested Response From",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? INTERESTED_RESPONSE_CHANNEL_LABELS[v] : "—";
+    },
   }),
   columnHelper.accessor("lastContactDate", {
     header: "Last Contact Date",

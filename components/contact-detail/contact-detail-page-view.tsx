@@ -26,7 +26,13 @@ import { SequenceProgress } from "./sequence-progress";
 import { TouchTimeline } from "./touch-timeline";
 import { ActivityTimelineTab } from "./activity-timeline-tab";
 import { ContactInsightsPanel } from "./contact-insights-panel";
-import { ContactInfoSection, CompanyInfoSection, LeadInfoSection, DatesSection } from "./property-sections";
+import {
+  ContactInfoSection,
+  CompanyInfoSection,
+  LeadInfoSection,
+  LinkedinOutreachSection,
+  DatesSection,
+} from "./property-sections";
 import { LogCallDialog } from "./log-call-dialog";
 import { LogLinkedinDialog } from "./log-linkedin-dialog";
 import { SendSmsDialog } from "./send-sms-dialog";
@@ -207,6 +213,7 @@ export function ContactDetailPageView({
           <ContactInfoSection contact={contact} onSaved={refresh} />
           <CompanyInfoSection contact={contact} onSaved={refresh} />
           <LeadInfoSection contact={contact} onSaved={refresh} />
+          <LinkedinOutreachSection contact={contact} onSaved={refresh} />
           <DatesSection contact={contact} />
         </div>
 

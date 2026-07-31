@@ -8,6 +8,8 @@ import { z } from "zod";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,6 +26,9 @@ import {
   leadSourceEnum,
   leadSourceCapturedEnum,
   teamMemberEnum,
+  linkedinConnectionStatusEnum,
+  linkedinLifecycleStageEnum,
+  interestedResponseChannelEnum,
 } from "@/lib/validations";
 import { createContact, getContactOwnerPool } from "@/app/actions/contacts";
 import {
@@ -34,6 +39,9 @@ import {
   LEAD_SOURCE_CAPTURED_LABELS,
   LIFECYCLE_STAGE_LABELS,
   TEAM_MEMBER_LABELS,
+  LINKEDIN_CONNECTION_STATUS_LABELS,
+  LINKEDIN_LIFECYCLE_STAGE_LABELS,
+  INTERESTED_RESPONSE_CHANNEL_LABELS,
 } from "@/lib/status-config";
 
 // Transform-free schema matching what the inputs below actually produce —
@@ -48,6 +56,7 @@ const formSchema = z.object({
   cellPhone: z.string(),
   linkedinUrl: z.string(),
   company: z.string(),
+  designation: z.string(),
   websiteUrl: z.string(),
   numberOfEmployees: z.string(),
   streetAddress: z.string(),
@@ -62,6 +71,14 @@ const formSchema = z.object({
   industryDetail: z.union([industryDetailEnum, z.literal("")]),
   leadSource: leadSourceEnum,
   leadSourceCaptured: z.union([leadSourceCapturedEnum, z.literal("")]),
+  linkedinConnectionStatus: z.union([linkedinConnectionStatusEnum, z.literal("")]),
+  linkedinPitchNote: z.string(),
+  linkedinFollowUp1: z.boolean(),
+  linkedinFollowUp2: z.boolean(),
+  linkedinFollowUp3: z.boolean(),
+  linkedinFollowUp4: z.boolean(),
+  linkedinLifecycleStage: z.union([linkedinLifecycleStageEnum, z.literal("")]),
+  interestedResponseFrom: z.union([interestedResponseChannelEnum, z.literal("")]),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -95,6 +112,7 @@ export function ContactCreateForm({
       cellPhone: "",
       linkedinUrl: "",
       company: "",
+      designation: "",
       websiteUrl: "",
       numberOfEmployees: "",
       streetAddress: "",
@@ -109,6 +127,14 @@ export function ContactCreateForm({
       industryDetail: "",
       leadSource: "OTHER",
       leadSourceCaptured: "",
+      linkedinConnectionStatus: "",
+      linkedinPitchNote: "",
+      linkedinFollowUp1: false,
+      linkedinFollowUp2: false,
+      linkedinFollowUp3: false,
+      linkedinFollowUp4: false,
+      linkedinLifecycleStage: "",
+      interestedResponseFrom: "",
     },
   });
 
@@ -129,6 +155,13 @@ export function ContactCreateForm({
   const leadSource = watch("leadSource");
   const leadSourceCaptured = watch("leadSourceCaptured");
   const contactOwner = watch("contactOwner");
+  const linkedinConnectionStatus = watch("linkedinConnectionStatus");
+  const linkedinLifecycleStage = watch("linkedinLifecycleStage");
+  const interestedResponseFrom = watch("interestedResponseFrom");
+  const linkedinFollowUp1 = watch("linkedinFollowUp1");
+  const linkedinFollowUp2 = watch("linkedinFollowUp2");
+  const linkedinFollowUp3 = watch("linkedinFollowUp3");
+  const linkedinFollowUp4 = watch("linkedinFollowUp4");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -168,9 +201,15 @@ export function ContactCreateForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Company name</Label>
-        <Input {...register("company")} />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label>Company name</Label>
+          <Input {...register("company")} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Designation</Label>
+          <Input {...register("designation")} />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -336,6 +375,109 @@ export function ContactCreateForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <h3 className="mb-3 text-sm font-semibold">LinkedIn Outreach</h3>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>LinkedIn Status</Label>
+              <Select
+                value={linkedinConnectionStatus || undefined}
+                onValueChange={(v) =>
+                  setValue("linkedinConnectionStatus", v as FormValues["linkedinConnectionStatus"])
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LINKEDIN_CONNECTION_STATUS_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Lifecycle of LinkedIn</Label>
+              <Select
+                value={linkedinLifecycleStage || undefined}
+                onValueChange={(v) =>
+                  setValue("linkedinLifecycleStage", v as FormValues["linkedinLifecycleStage"])
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LINKEDIN_LIFECYCLE_STAGE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Pitch / Connection Request Note</Label>
+            <Textarea {...register("linkedinPitchNote")} rows={3} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">1st Follow Up LinkedIn</Label>
+              <Switch
+                checked={linkedinFollowUp1}
+                onCheckedChange={(v) => setValue("linkedinFollowUp1", v)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">2nd Follow Up LinkedIn</Label>
+              <Switch
+                checked={linkedinFollowUp2}
+                onCheckedChange={(v) => setValue("linkedinFollowUp2", v)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">3rd Follow Up LinkedIn</Label>
+              <Switch
+                checked={linkedinFollowUp3}
+                onCheckedChange={(v) => setValue("linkedinFollowUp3", v)}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+              <Label className="font-normal">4th Follow Up LinkedIn</Label>
+              <Switch
+                checked={linkedinFollowUp4}
+                onCheckedChange={(v) => setValue("linkedinFollowUp4", v)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Interested Response From</Label>
+            <Select
+              value={interestedResponseFrom || undefined}
+              onValueChange={(v) => setValue("interestedResponseFrom", v as FormValues["interestedResponseFrom"])}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(INTERESTED_RESPONSE_CHANNEL_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

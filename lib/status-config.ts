@@ -7,6 +7,9 @@ import type {
   LifecycleStage,
   TeamMember,
   DealStage,
+  LinkedinConnectionStatus,
+  LinkedinLifecycleStage,
+  InterestedResponseChannel,
 } from "@prisma/client";
 
 export const LEAD_STATUS_ORDER: LeadStatus[] = [
@@ -189,3 +192,39 @@ export const SEQUENCE_STEPS = [
   { step: 2, label: "Call" },
   { step: 3, label: "SMS" },
 ] as const;
+
+export const LINKEDIN_CONNECTION_STATUS_LABELS: Record<LinkedinConnectionStatus, string> = {
+  NOT_SENT: "Not Sent",
+  REQUEST_SENT: "Request Sent",
+  PENDING: "Pending",
+  CONNECTED: "Connected",
+  REJECTED: "Rejected",
+};
+
+/** Bucket key for contacts with no linkedinLifecycleStage set yet — the board's leftmost column. */
+export const LINKEDIN_LIFECYCLE_STAGE_DEFAULT: LinkedinLifecycleStage = "NOT_CONTACTED";
+
+export const LINKEDIN_LIFECYCLE_STAGE_ORDER: LinkedinLifecycleStage[] = [
+  "NOT_CONTACTED",
+  "CONNECTION_SENT",
+  "CONNECTED",
+  "FOLLOW_UP_IN_PROGRESS",
+  "INTERESTED",
+  "NOT_INTERESTED",
+];
+
+export const LINKEDIN_LIFECYCLE_STAGE_LABELS: Record<LinkedinLifecycleStage, string> = {
+  NOT_CONTACTED: "Not Contacted",
+  CONNECTION_SENT: "Connection Sent",
+  CONNECTED: "Connected",
+  FOLLOW_UP_IN_PROGRESS: "Follow Up in Progress",
+  INTERESTED: "Interested",
+  NOT_INTERESTED: "Not Interested",
+};
+
+export const INTERESTED_RESPONSE_CHANNEL_LABELS: Record<InterestedResponseChannel, string> = {
+  EMAIL: "Email",
+  LINKEDIN: "LinkedIn",
+  CALLING: "Calling",
+  TEXT: "Text",
+};

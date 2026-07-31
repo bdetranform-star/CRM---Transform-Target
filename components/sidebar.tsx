@@ -16,6 +16,7 @@ import {
   Users2,
   MessageSquare,
   FileUp,
+  Kanban,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
 const MORE_ITEMS = [
   { href: "/calls", label: "Call Queue", icon: Phone },
   { href: "/linkedin", label: "LinkedIn Tasks", icon: Users2 },
+  { href: "/linkedin-lifecycle", label: "LinkedIn Lifecycle", icon: Kanban },
   { href: "/sms-templates", label: "SMS Templates", icon: MessageSquare },
   { href: "/import-export", label: "Import / Export", icon: FileUp },
 ];

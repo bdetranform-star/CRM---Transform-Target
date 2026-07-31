@@ -164,13 +164,15 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     property's type, then the matching value input. Field definitions (type,
     label, operators, enum options) live in `lib/contact-filters.ts`, one
     entry per filterable `Contact` property:
-    - `string` (First/Last Name, Job Title, Email, Company, Website/LinkedIn
-      URL, Street Address, City, State, Country, Zip Code): contains / is
-      equal to / is known / is unknown.
+    - `string` (First/Last Name, Job Title, Designation, Email, Company,
+      Website/LinkedIn URL, Street Address, City, State, Country, Zip Code,
+      Pitch / Connection Request Note): contains / is equal to / is known /
+      is unknown.
     - `phone` (Work/Cell Phone Number): contains / is known / is unknown —
       no "is equal to", since exact phone-format matching isn't useful.
     - `enum` (Lifecycle Stage, Lead Status, Industry, Industry Detail,
-      Contact Owner, Lead Source, Lead Source Captured): is any of / is none
+      Contact Owner, Lead Source, Lead Source Captured, LinkedIn Status,
+      Lifecycle of LinkedIn, Interested Response From): is any of / is none
       of, each backed by a searchable multi-select checklist of the enum's
       real values (`SearchableChecklist`).
     - `number` (Website Traffic, Number of Employees): equals / greater than
@@ -179,6 +181,15 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       after / is before / is between (two date inputs) / in the last N days
       (relative, computed from `new Date()` at query time via
       `date-fns.subDays`).
+    - `boolean` (1st/2nd/3rd/4th Follow Up LinkedIn) — added alongside the
+      original four types specifically for these fields: is Yes / is No,
+      each a value-free operator exactly like `is_known`/`is_unknown` (the
+      operator alone fully describes the filter, so `ValueEditor` renders no
+      input for it). "is No" (`buildWhereFromFilters()`'s `is_false` branch)
+      deliberately matches with `{ not: true }` rather than `{ equals:
+      false }`, so a never-toggled `null` reads as "No" too, consistent with
+      how the toggle displays on the New Contact form and contact detail
+      page.
 
     A filter's value lives in `ContactFilter.value` (single scalar),
     `.values` (the multi-select operators), or `.valueMin`/`.valueMax`
@@ -273,11 +284,11 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   actions the old panel had — Log a call / Log LinkedIn touch / Send SMS /
   Reply logged / Open LinkedIn profile / Delete — plus `SequenceProgress`);
   a ~320px left column (`property-sections.tsx`'s `ContactInfoSection` /
-  `CompanyInfoSection` / `LeadInfoSection`, each independently toggled
-  between a read-only display and an inline edit form calling `updateContact`
-  with just that section's fields — a genuine partial update, see the
-  `contactUpdateSchema` note under "Data model" below — plus a read-only
-  `DatesSection`); and a right-side `Overview`/`Activities` tab pair
+  `CompanyInfoSection` / `LeadInfoSection` / `LinkedinOutreachSection`, each
+  independently toggled between a read-only display and an inline edit form
+  calling `updateContact` with just that section's fields — a genuine
+  partial update, see the `contactUpdateSchema` note under "Data model"
+  below — plus a read-only `DatesSection`); and a right-side `Overview`/`Activities` tab pair
   (`Tabs`). Overview shows `ContactInsightsPanel` (see below) and the 5 most
   recent touches (reusing `TouchTimeline`) with a link into the Activities
   tab. Activities shows `ActivityTimelineTab` — sub-tabs for All/Notes/
@@ -293,6 +304,12 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     was deleted as dead code). The "+ New Contact" buttons on the Board and
     Contacts table open this panel; on success it navigates to
     `/contacts/[id]` for the newly created contact instead of just closing.
+    `Designation` sits in a 2-column grid next to `Company name`; a bordered
+    "LinkedIn Outreach" section near the bottom of the form (right before
+    Cancel/Create) groups the remaining 8 LinkedIn fields together — LinkedIn
+    Status and Lifecycle of LinkedIn as side-by-side `Select`s, the pitch
+    note as a `Textarea`, the 4 follow-ups as a 2x2 grid of `Switch` toggles,
+    and Interested Response From as a final `Select`.
   - **Avatar photo upload** — clicking the avatar circle in the identity
     card opens `AvatarUploadDialog` (`components/contact-detail/
     avatar-upload-dialog.tsx`): drag-and-drop or a file picker, client-side
@@ -330,6 +347,17 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       next upload attempt succeeds with zero code changes; verified by
       confirming the failure path end-to-end (this environment has no real
       token to test the reverse).
+  - **LinkedIn Outreach section** (`LinkedinOutreachSection`, `property-
+    sections.tsx`) — same read/edit-toggle pattern as `ContactInfoSection`/
+    `CompanyInfoSection`/`LeadInfoSection` above, covering the 8 LinkedIn
+    outreach fields (LinkedIn Status, Pitch / Connection Request Note, the 4
+    Follow Up toggles, Lifecycle of LinkedIn, Interested Response From) —
+    see "Data model" below for the fields themselves. `Designation` lives in
+    `CompanyInfoSection` instead (next to `company`), matching its placement
+    on the New Contact form. The 4 follow-up fields edit as `Switch` toggles
+    (`components/ui/switch.tsx`, a new shadcn-style wrapper around
+    `@radix-ui/react-switch`) and display as literal "Yes"/"No" text in the
+    read-only view.
   - **AI Insights panel** (`contact-insights-panel.tsx`) — a cached,
     manually-regenerated summary plus a persisted per-contact chat:
     - `generateContactInsights()` (`app/actions/contact-insights.ts`) sends
@@ -374,6 +402,25 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
 - **LinkedIn Tasks** (`components/linkedin-tasks/`) — same shape, for
   `sequenceStep === 1`. Outcome `CONNECTED` or `REPLIED` advances
   `sequenceStep → 2`.
+- **LinkedIn Lifecycle board** (`/linkedin-lifecycle`, `components/
+  linkedin-board/`) — a second, independent Kanban board grouped on
+  `Contact.linkedinLifecycleStage` instead of `leadStatus`, for tracking the
+  LinkedIn-specific outreach pipeline separately from the main Lead Board.
+  Closely mirrors `components/board/` (`LinkedinBoardView`/
+  `LinkedinBoardColumn`/`LinkedinBoardCard`, same `dnd-kit` `DndContext` +
+  `useOptimistic` drag pattern), but cards show LinkedIn Status and Contact
+  Owner instead of Industry/sequence-step, and there's no "+ New Contact"
+  button — contact creation stays on the Board/Contacts table, this board
+  only re-stages existing contacts. `getLinkedinLifecycleBoardContacts()`
+  (`app/actions/contacts.ts`) groups contacts by stage for the six columns
+  in `LINKEDIN_LIFECYCLE_STAGE_ORDER` (`lib/status-config.ts`); since the
+  field is nullable, a contact with no stage set yet is bucketed into the
+  leftmost "Not Contacted" column for *display only* — the returned/grouped
+  data always has a concrete stage, but the underlying DB column stays
+  `null` until `updateContactLinkedinLifecycleStage()` (called on drag) sets
+  it explicitly, so "never touched" and "explicitly Not Contacted" aren't
+  conflated in the data itself. Reachable from the sidebar's "More" section
+  as "LinkedIn Lifecycle", right below "LinkedIn Tasks".
 - **SMS** — template CRUD lives in `app/actions/sms-templates.ts` +
   `components/sms-templates/`. Token replacement (`{{firstName}}`,
   `{{company}}`, `{{industryDetail}}`) is `lib/sms-template-tokens.ts`
@@ -598,6 +645,34 @@ mapping" below for exactly how existing seeded data was carried forward.
     via the same WCAG relative-luminance formula used for the status pills
     — pure black passes >= 4.5:1 on 7 of the 8 hues; violet is the one
     swatch dark enough to need white text instead.
+  - `designation: String?` (new) — the person's title as tracked for
+    *outreach* purposes, entered on the New Contact form right next to
+    `company`. Deliberately a separate field from `jobTitle` (the CRM's own
+    identity property, entered elsewhere in the form) rather than merged
+    into it — the two can differ and the LinkedIn outreach workflow this
+    was added for needs its own copy.
+  - LinkedIn outreach tracking (all new, all nullable since not every
+    contact goes through a LinkedIn-specific cadence — see migration
+    `20260731172730_add_linkedin_outreach_fields`): `linkedinConnectionStatus`
+    (enum `LinkedinConnectionStatus`: `NOT_SENT` / `REQUEST_SENT` / `PENDING`
+    / `CONNECTED` / `REJECTED` — where a connection request currently
+    stands), `linkedinPitchNote` (`String? @db.Text` — the connection
+    request/pitch message), `linkedinFollowUp1`–`linkedinFollowUp4`
+    (`Boolean?`, one per follow-up touch), `linkedinLifecycleStage` (enum
+    `LinkedinLifecycleStage`: `NOT_CONTACTED → CONNECTION_SENT → CONNECTED →
+    FOLLOW_UP_IN_PROGRESS → INTERESTED` / `NOT_INTERESTED` — powers its own
+    Kanban board, see "LinkedIn Lifecycle board" under "Key modules", kept
+    entirely separate from the main Lead Board's `leadStatus`), and
+    `interestedResponseFrom` (enum `InterestedResponseChannel`: `EMAIL` /
+    `LINKEDIN` / `CALLING` / `TEXT` — which channel a contact used to
+    respond once interested, distinct from both `leadSource`, how they
+    entered the CRM, and `Touch.channel`, how a given outreach action was
+    logged). All editable via the New Contact form's "LinkedIn Outreach"
+    section and the contact detail page's `LinkedinOutreachSection`
+    (`components/contact-detail/property-sections.tsx`); all filterable via
+    Advanced Filters and sortable/visible as Contacts table columns (the 4
+    follow-up booleans are filterable but not sortable, matching the
+    existing convention for `smsOptOut`).
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)
