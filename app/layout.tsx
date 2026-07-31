@@ -17,6 +17,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Transform Targets CRM",
   description: "Cold-outreach lead tracking for Facility Maintenance / IFM",
+  icons: {
+    // app/favicon.ico is a Next.js special file (auto-served + auto-linked
+    // at /favicon.ico), so it isn't declared again here.
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

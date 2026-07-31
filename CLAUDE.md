@@ -755,6 +755,21 @@ placeholder fallback to keep in sync.
   green (indistinguishable from the now-green sidebar background) in a tiny
   32-40px box. `Logo` renders it by height (`h-9 w-auto`), not forced into a
   square, so it stays undistorted.
+- **Favicon**: `app/favicon.ico` (a Next.js App Router special file, auto-served
+  and auto-linked at `/favicon.ico`) plus `public/favicon-16x16.png`,
+  `public/favicon-32x32.png`, and `public/apple-touch-icon.png`, all generated
+  from the same square, padded master crop of `public/logo.png` (green
+  `#5fce81` background sampled directly from the source pixels, matching the
+  rest of the brand palette) rather than the sidebar's tighter T/I crop —
+  favicons need equal padding on all sides since they render as a square.
+  `app/layout.tsx`'s `metadata.icons` declares the 16px/32px PNGs and the
+  Apple touch icon explicitly; the `.ico` itself is deliberately **not**
+  redeclared there since Next already auto-injects its `<link rel="icon">`
+  from the special `app/favicon.ico` file — doing both would emit a
+  duplicate tag. (An `app/favicon.ico` already existed from the original
+  `create-next-app` scaffold — the default Vercel triangle mark — and takes
+  precedence over anything dropped in `public/`, which is why replacing only
+  `public/favicon.ico` wouldn't have been enough on its own.)
 - **Why no `fs.existsSync` check**: an earlier version of `Logo` conditionally
   rendered the image only if `fs.existsSync` found `public/logo.png` at
   request time, falling back to a "TT" placeholder otherwise. That worked in
