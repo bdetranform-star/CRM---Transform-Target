@@ -34,7 +34,22 @@ what changed and why.
 
 ### Routing
 
-- `app/login/page.tsx` — public login page.
+- `app/login/page.tsx` — public login page. A HubSpot-style hero: a
+  full-bleed background layer (`bg-cover bg-center`, layered
+  `url('/login-bg.jpg')` over a brand-green-tinted navy/near-black
+  gradient) plus a dark gradient overlay for text contrast, a bold
+  headline/sub-headline/stat-badge hero copy block, and the existing
+  `LoginForm` unchanged inside a light frosted-glass card
+  (`bg-white/90 backdrop-blur-xl`) so its dark-on-white styling needs no
+  rework. `public/login-bg.jpg` isn't committed — CSS paints
+  background-image layers front-to-back and simply skips one that 404s, so
+  the gradient shows through on its own until that file is dropped in;
+  no other code changes are needed once it exists. Fade-in-on-load uses
+  `tw-animate-css`'s `animate-in`/`fade-in`/`slide-in-from-*`/`delay-*`
+  utility classes (already a dependency, used elsewhere for Radix
+  open/close transitions) rather than a new animation library. `app/setup/
+  page.tsx` deliberately keeps its older plain-green-background look —
+  this redesign was scoped to the login page only.
 - `app/setup/page.tsx` — public one-time bootstrap page: a form to create the
   first admin login (email + password) when the `User` table is empty. See
   "Data layer" below for how reuse is prevented.
