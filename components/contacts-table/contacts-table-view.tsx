@@ -38,8 +38,10 @@ import {
 } from "@/components/contact-detail/contact-detail-panel";
 import { INDUSTRY_LABELS, LEAD_STATUS_CONFIG, TEAM_MEMBER_LABELS } from "@/lib/status-config";
 import type { ContactFilter } from "@/lib/contact-filters";
-import type { getContactsTable } from "@/app/actions/contacts";
+import { getAllFilteredContactIds, type getContactsTable } from "@/app/actions/contacts";
 import { SAVED_VIEWS, SAVED_VIEW_LOCKED_FILTER, type SavedView } from "@/lib/saved-views";
+import { PAGE_SIZE_OPTIONS, type PageSizeOption } from "@/lib/contacts-table-preferences";
+import { getSavedPageSize, savePageSize } from "@/lib/contacts-table-storage";
 
 type TableData = Awaited<ReturnType<typeof getContactsTable>>;
 
@@ -60,6 +62,13 @@ export function ContactsTableView({
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [creating, setCreating] = useState(false);
+
+  // Cross-page "select all N contacts that match the current filter" — once
+  // active, `allFilteredIds` (not `rowSelection`, which only ever knows about
+  // rows on the currently-loaded page) is the authoritative selected set.
+  const [allFilteredIds, setAllFilteredIds] = useState<string[] | null>(null);
+  const [loadingAllFilteredIds, setLoadingAllFilteredIds] = useState(false);
+  const selectAllFilteredActive = allFilteredIds !== null;
 
   const sortField = searchParams.get("sort") ?? "updatedAt";
   const sortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
@@ -103,6 +112,75 @@ export function ContactsTableView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchValue]);
 
+  // Search/quick-filter/saved-view/advanced-filter state only (not page or
+  // sort) — changing any of these means "matches the current filter" itself
+  // is different, so the full cross-page "select all filtered" set is no
+  // longer valid and must be cleared, not just the current page's checkboxes.
+  const filterCriteriaSignature = [
+    searchParams.get("search"),
+    searchParams.get("industry"),
+    searchParams.get("status"),
+    searchParams.get("owner"),
+    searchParams.get("view"),
+    searchParams.get("customView"),
+    searchParams.get("filters"),
+  ].join("|");
+
+  function clearSelection() {
+    setRowSelection({});
+    setAllFilteredIds(null);
+  }
+
+  useEffect(() => {
+    clearSelection();
+  }, [filterCriteriaSignature]);
+
+  // Paging/changing page size swaps out which rows are actually on screen,
+  // so the page-scoped `rowSelection` no longer corresponds to anything
+  // visible — but an active "select all filtered" selection is independent
+  // of what page you're looking at, so it's deliberately left alone here.
+  useEffect(() => {
+    setRowSelection({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("page"), searchParams.get("pageSize")]);
+
+  // Bootstrap the user's last-saved page size from localStorage on first
+  // load, only if the URL doesn't already specify one (an explicit URL param
+  // — e.g. from a shared link — always wins).
+  useEffect(() => {
+    if (searchParams.get("pageSize")) return;
+    const saved = getSavedPageSize();
+    if (saved && saved !== initialData.pageSize) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.set("pageSize", String(saved));
+      router.replace(`${pathname}?${next.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSelectAllFiltered() {
+    setLoadingAllFilteredIds(true);
+    try {
+      const ids = await getAllFilteredContactIds({
+        search: searchParams.get("search") || undefined,
+        industry: searchParams.get("industry") || undefined,
+        contactOwner: searchParams.get("owner") || undefined,
+        leadStatus: searchParams.get("status") || undefined,
+        savedView: searchParams.get("view") || undefined,
+        filters,
+      });
+      setAllFilteredIds(ids);
+    } finally {
+      setLoadingAllFilteredIds(false);
+    }
+  }
+
+  function handlePageSizeChange(value: string) {
+    const size = Number(value) as PageSizeOption;
+    savePageSize(size);
+    updateParams({ pageSize: String(size) });
+  }
+
   const table = useReactTable({
     data: initialData.rows as ContactRow[],
     columns: contactColumns,
@@ -112,12 +190,26 @@ export function ContactsTableView({
     manualSorting: true,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
+    meta: {
+      selectAllFilteredActive,
+      onClearAllFiltered: clearSelection,
+    },
   });
 
-  const selectedIds = useMemo(
+  const pageSelectedIds = useMemo(
     () => Object.keys(rowSelection).filter((id) => rowSelection[id]),
     [rowSelection]
   );
+
+  const selectedIds = selectAllFilteredActive ? (allFilteredIds as string[]) : pageSelectedIds;
+
+  // Only offer to expand to the full filtered set once every row on this
+  // page is selected and there's actually more beyond this page to expand to.
+  const showSelectAllBanner =
+    !selectAllFilteredActive &&
+    initialData.rows.length > 0 &&
+    pageSelectedIds.length === initialData.rows.length &&
+    initialData.total > initialData.rows.length;
 
   function handleSort(columnId: string) {
     const isSameField = sortField === columnId;
@@ -207,23 +299,43 @@ export function ContactsTableView({
         <AdvancedFiltersPanel filters={filters} onChange={handleFiltersChange} lockedFilter={lockedFilter} />
       </div>
 
+      {showSelectAllBanner && (
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-[var(--accent-teal)]/30 bg-[color-mix(in_srgb,var(--accent-teal)_6%,white)] px-4 py-2.5 text-sm">
+          <span>
+            All {initialData.rows.length} contact{initialData.rows.length === 1 ? "" : "s"} on this
+            page are selected.
+          </span>
+          <button
+            type="button"
+            className="font-medium text-[var(--accent-teal)] underline hover:no-underline disabled:opacity-50"
+            onClick={handleSelectAllFiltered}
+            disabled={loadingAllFilteredIds}
+          >
+            {loadingAllFilteredIds
+              ? "Loading..."
+              : `Select all ${initialData.total} contacts that match the current filter`}
+          </button>
+        </div>
+      )}
+
       {selectedIds.length > 0 && (
         <BulkActionBar
           selectedIds={selectedIds}
+          onClear={clearSelection}
           onDone={() => {
-            setRowSelection({});
+            clearSelection();
             router.refresh();
           }}
         />
       )}
 
       <div className="overflow-hidden rounded-lg border border-border bg-white">
-        <Table>
-          <TableHeader>
+        <Table containerClassName="max-h-[65vh]">
+          <TableHeader className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="bg-secondary/50">
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <button
                         className="flex items-center gap-1 hover:text-foreground"
@@ -274,10 +386,27 @@ export function ContactsTableView({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          Page {initialData.page} of {initialData.pageCount} &middot; {initialData.total} total
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3">
+          <span>
+            Page {initialData.page} of {initialData.pageCount} &middot; {initialData.total} total
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span>Rows per page</span>
+            <Select value={String(initialData.pageSize)} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-[68px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"

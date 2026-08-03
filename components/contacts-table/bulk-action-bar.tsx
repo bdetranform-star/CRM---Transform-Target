@@ -19,9 +19,11 @@ import { BulkEditDialog } from "./bulk-edit-dialog";
 export function BulkActionBar({
   selectedIds,
   onDone,
+  onClear,
 }: {
   selectedIds: string[];
   onDone: () => void;
+  onClear: () => void;
 }) {
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,13 @@ export function BulkActionBar({
   return (
     <div className="flex items-center gap-2 rounded-lg border border-[var(--accent-teal)]/30 bg-[color-mix(in_srgb,var(--accent-teal)_6%,white)] px-4 py-2.5">
       <span className="text-sm font-medium">{selectedIds.length} selected</span>
+      <button
+        type="button"
+        onClick={onClear}
+        className="text-sm text-muted-foreground underline hover:text-foreground"
+      >
+        Clear selection
+      </button>
       <div className="ml-auto flex items-center gap-2">
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-48">

@@ -310,6 +310,76 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     sort/page in place (the same `router.refresh()` + clear-selection
     pattern the existing bulk actions already used), so the user doesn't
     lose their place in the table.
+  - **Select all across the full filtered result set** (Gmail/HubSpot-style,
+    `contacts-table-view.tsx`) — the header checkbox's native TanStack
+    behavior (`toggleAllPageRowsSelected()`) only ever selects rows in the
+    table's current `data`, i.e. the current page, since TanStack's
+    `RowSelectionState` in manual-pagination mode has no way to reference a
+    row it hasn't loaded. Once every row on the page is checked this way *and*
+    there's more beyond this page (`pageSelectedIds.length ===
+    initialData.rows.length && initialData.total > initialData.rows.length`),
+    a banner appears above the table: "All 50 contacts on this page are
+    selected. Select all 695 contacts that match the current filter" —
+    clicking the link calls the new `getAllFilteredContactIds()` server
+    action (`app/actions/contacts.ts`), which reuses the exact same
+    `buildContactsWhere()` helper `getContactsTable()` itself calls (factored
+    out of it for this purpose, so "matches the current filter" can never
+    drift between the two) to fetch every matching contact's `id`, unbounded
+    by page size. That full id array (`allFilteredIds` state) becomes the
+    authoritative selected set — `selectedIds` is `allFilteredIds` whenever
+    it's non-null, otherwise the normal page-scoped `rowSelection`-derived
+    list — so `BulkActionBar`, `BulkEditDialog`, Change Status, and Delete
+    Selected all keep their existing `ids: string[]` signature and need no
+    special-casing to operate across every matching contact instead of just
+    the page rendered on screen. While this "select all filtered" mode is
+    active, the header checkbox and every row checkbox render checked (via a
+    `selectAllFilteredActive` flag threaded through `useReactTable`'s `meta`
+    option, read by the `select` column in `columns.tsx`) and individual row
+    checkboxes are disabled rather than supporting a HubSpot-style per-row
+    exclude-list — clicking the header checkbox again, or the "Clear
+    selection" link now shown next to the live "N selected" count in
+    `BulkActionBar`, is the only way out of the mode, which was judged a
+    reasonable scope trade-off over a full include/exclude selection model.
+    The selection (either mode) is automatically cleared whenever the
+    search/industry/status/owner/saved-view/custom-view/advanced-filter
+    state changes (a `filterCriteriaSignature` effect) — since "matches the
+    current filter" would otherwise be stale — and the page-scoped
+    `rowSelection` alone (not the full-filtered set) is also cleared on
+    page/page-size navigation, since a different page means different rows
+    are actually on screen even though the same "all N filtered" selection
+    conceptually still applies.
+  - **Rows-per-page toggle** (25/50/100, next to the "Page X of Y" footer) —
+    a `?pageSize=` URL param (`lib/contacts-table-preferences.ts`'s
+    `parsePageSize()`, clamped to those three values, default 50) replaces
+    the old hardcoded `PAGE_SIZE = 50` constant in `app/(app)/contacts/
+    page.tsx`. Changing it calls the same `updateParams()` used everywhere
+    else on this page, which already resets `?page=` to 1 whenever a key
+    other than `page` itself is being set — so switching page size always
+    lands back on page 1, with no special-casing needed. The choice also
+    persists to `localStorage` (`lib/contacts-table-storage.ts`, mirroring
+    the existing `lib/saved-views-storage.ts` pattern) so it's remembered
+    across sessions: on first mount, if the URL doesn't already specify a
+    `?pageSize=` (an explicit/shared link always wins), a `router.replace()`
+    silently applies the saved value so it survives a plain revisit to
+    `/contacts` with no query string.
+  - **Sticky header row** — `components/ui/table.tsx`'s `Table` now accepts
+    an optional `containerClassName` prop on its own internal wrapper div
+    (previously hardcoded to `overflow-x-auto`, now `overflow-auto` so it's
+    an explicit single scroll container for both axes rather than relying on
+    the browser's visible→auto quirk for the vertical axis). The Contacts
+    table passes `containerClassName="max-h-[65vh]"` and puts
+    `className="sticky top-0 z-10"` on its `TableHeader`, with an explicit
+    `bg-secondary/50` on each `TableHead` so the sticky header stays opaque
+    over rows scrolling underneath it. This makes the *inner* container div
+    — not the outer `overflow-hidden` wrapper div that only exists for the
+    rounded-corner clipping — the nearest actual scrolling ancestor, which is
+    what a `position: sticky` element positions itself against; nesting the
+    scroll region any further out (e.g. relying on the page-level
+    `overflow-y-auto` div in `page.tsx`) would leave the sticky header
+    positioned relative to the wrong box. Works at any of the three page
+    sizes since it's a fixed pixel/viewport height, not row-count-dependent,
+    and doesn't disturb the existing horizontal scroll (the same div now
+    just also handles the vertical axis).
 - **Contact detail page** (`/contacts/[id]`, `components/contact-detail/
   contact-detail-page-view.tsx`) — a full page (not a slide-over) that's the
   only way to view or edit an existing contact; the Board, Contacts table,

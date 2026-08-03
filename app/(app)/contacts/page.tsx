@@ -1,8 +1,7 @@
 import { getContactsTable, getContactOwners, getSavedViewCounts } from "@/app/actions/contacts";
 import { ContactsTableView } from "@/components/contacts-table/contacts-table-view";
 import { contactFilterSchema, type ContactFilter } from "@/lib/contact-filters";
-
-const PAGE_SIZE = 50;
+import { parsePageSize } from "@/lib/contacts-table-preferences";
 
 function parseFilters(raw: string | undefined): ContactFilter[] {
   if (!raw) return [];
@@ -25,12 +24,13 @@ export default async function ContactsPage({
 }) {
   const params = await searchParams;
   const page = Number(params.page) > 0 ? Number(params.page) : 1;
+  const pageSize = parsePageSize(params.pageSize);
   const filters = parseFilters(params.filters);
 
   const [data, owners, viewCounts] = await Promise.all([
     getContactsTable({
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
       search: params.search,
       industry: params.industry,
       contactOwner: params.owner,

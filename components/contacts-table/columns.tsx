@@ -1,6 +1,6 @@
 "use client";
 
-import { createColumnHelper } from "@tanstack/react-table";
+import { createColumnHelper, type RowData } from "@tanstack/react-table";
 import { ExternalLink } from "lucide-react";
 import type { Contact } from "@prisma/client";
 import { format } from "date-fns";
@@ -28,6 +28,16 @@ export type ContactRow = Omit<Contact, never> & {
   lastCallOutcome: string | null;
 };
 
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- TData is required for interface merging with @tanstack/table-core's own declaration, even though it's unused here.
+  interface TableMeta<TData extends RowData> {
+    /** True once "Select all N contacts that match the current filter" is active. */
+    selectAllFilteredActive?: boolean;
+    /** Clears the cross-page "select all filtered" selection entirely. */
+    onClearAllFiltered?: () => void;
+  }
+}
+
 const columnHelper = createColumnHelper<ContactRow>();
 
 function formatDate(value: Date | null) {
@@ -37,25 +47,49 @@ function formatDate(value: Date | null) {
 export const contactColumns = [
   columnHelper.display({
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
+    header: ({ table }) => {
+      const meta = table.options.meta;
+      const selectAllFilteredActive = meta?.selectAllFilteredActive ?? false;
+      return (
+        <Checkbox
+          checked={
+            selectAllFilteredActive ||
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => {
+            if (selectAllFilteredActive) {
+              meta?.onClearAllFiltered?.();
+            } else {
+              table.toggleAllPageRowsSelected(!!value);
+            }
+          }}
+          aria-label="Select all"
+          onClick={(e) => e.stopPropagation()}
+        />
+      );
+    },
+    cell: ({ row, table }) => {
+      const selectAllFilteredActive = table.options.meta?.selectAllFilteredActive ?? false;
+      if (selectAllFilteredActive) {
+        return (
+          <Checkbox
+            checked
+            disabled
+            aria-label="Select row"
+            onClick={(e) => e.stopPropagation()}
+          />
+        );
+      }
+      return (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      );
+    },
     enableSorting: false,
   }),
   columnHelper.display({

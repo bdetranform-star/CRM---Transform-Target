@@ -125,48 +125,30 @@ function savedViewWhere(view?: string): Prisma.ContactWhereInput {
   }
 }
 
-export type ContactsTableParams = {
-  page: number;
-  pageSize: number;
+export type ContactsFilterParams = {
   search?: string;
   industry?: string;
   contactOwner?: string;
   leadStatus?: string;
   savedView?: string;
   filters?: ContactFilter[];
+};
+
+export type ContactsTableParams = ContactsFilterParams & {
+  page: number;
+  pageSize: number;
   sortField?: string;
   sortDirection?: "asc" | "desc";
 };
 
-const SORTABLE_FIELDS = new Set([
-  "firstName",
-  "lastName",
-  "email",
-  "company",
-  "designation",
-  "contactOwner",
-  "leadStatus",
-  "lifecycleStage",
-  "industry",
-  "leadSource",
-  "sequenceStep",
-  "createdAt",
-  "updatedAt",
-  "lastContactDate",
-  "linkedinConnectionStatus",
-  "linkedinConnectedOn",
-  "linkedinLifecycleStage",
-  "interestedResponseFrom",
-  "linkedinRegion",
-  "linkedinResponseType",
-]);
-
-export async function getContactsTable(params: ContactsTableParams) {
-  await requireAuth();
-
-  const page = Math.max(1, params.page);
-  const pageSize = Math.min(200, Math.max(1, params.pageSize));
-
+/**
+ * Builds the shared Prisma `where` clause from the Contacts table's
+ * search/quick-filter/saved-view/advanced-filter params. Shared by
+ * `getContactsTable()` (page of rows) and `getAllFilteredContactIds()` (every
+ * matching id, unbounded by page size) so the two can never drift apart on
+ * what counts as "matching the current filter."
+ */
+function buildContactsWhere(params: ContactsFilterParams): Prisma.ContactWhereInput {
   const where: Prisma.ContactWhereInput = { ...savedViewWhere(params.savedView) };
 
   if (params.search) {
@@ -199,6 +181,40 @@ export async function getContactsTable(params: ContactsTableParams) {
     const validFilters = params.filters.filter((f) => contactFilterSchema.safeParse(f).success);
     Object.assign(where, buildWhereFromFilters(validFilters));
   }
+
+  return where;
+}
+
+const SORTABLE_FIELDS = new Set([
+  "firstName",
+  "lastName",
+  "email",
+  "company",
+  "designation",
+  "contactOwner",
+  "leadStatus",
+  "lifecycleStage",
+  "industry",
+  "leadSource",
+  "sequenceStep",
+  "createdAt",
+  "updatedAt",
+  "lastContactDate",
+  "linkedinConnectionStatus",
+  "linkedinConnectedOn",
+  "linkedinLifecycleStage",
+  "interestedResponseFrom",
+  "linkedinRegion",
+  "linkedinResponseType",
+]);
+
+export async function getContactsTable(params: ContactsTableParams) {
+  await requireAuth();
+
+  const page = Math.max(1, params.page);
+  const pageSize = Math.min(200, Math.max(1, params.pageSize));
+
+  const where = buildContactsWhere(params);
 
   const sortField =
     params.sortField && SORTABLE_FIELDS.has(params.sortField) ? params.sortField : "updatedAt";
@@ -233,6 +249,22 @@ export async function getContactsTable(params: ContactsTableParams) {
     pageSize,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+/**
+ * Every contact id matching the current search/quick-filter/saved-view/
+ * advanced-filter state, unbounded by page size — backs the Contacts table's
+ * "Select all N contacts that match the current filter" action, which needs
+ * to operate on the full result set rather than just the rows currently
+ * rendered on screen. Reuses `buildContactsWhere()` so "matching the current
+ * filter" can never drift from what `getContactsTable()` itself considers a
+ * match.
+ */
+export async function getAllFilteredContactIds(params: ContactsFilterParams): Promise<string[]> {
+  await requireAuth();
+  const where = buildContactsWhere(params);
+  const rows = await prisma.contact.findMany({ where, select: { id: true } });
+  return rows.map((r) => r.id);
 }
 
 /** Counts for each saved-view tab, shown live on the tab itself. */
