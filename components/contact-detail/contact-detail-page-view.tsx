@@ -31,6 +31,7 @@ import {
   CompanyInfoSection,
   LeadInfoSection,
   LinkedinOutreachSection,
+  LinkedinConnectionBreakdownSection,
   DatesSection,
 } from "./property-sections";
 import { LogCallDialog } from "./log-call-dialog";
@@ -218,6 +219,7 @@ export function ContactDetailPageView({
           <CompanyInfoSection contact={contact} onSaved={refresh} />
           <LeadInfoSection contact={contact} onSaved={refresh} />
           <LinkedinOutreachSection contact={contact} onSaved={refresh} />
+          <LinkedinConnectionBreakdownSection contact={contact} onSaved={refresh} />
           <DatesSection contact={contact} />
         </div>
 

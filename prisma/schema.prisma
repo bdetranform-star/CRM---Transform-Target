@@ -28,15 +28,24 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-/// The 5 named team members. Used for both Contact.contactOwner and
+/// The named team members. Used for both Contact.contactOwner and
 /// Task.assignedTo — replaces the earlier 100 placeholder sending-account
-/// emails, which represented outreach mailboxes rather than people.
+/// emails, which represented outreach mailboxes rather than people. Renamed
+/// from an earlier 5-person placeholder roster to this real 11-person
+/// roster in migration 20260801000000_rename_team_members — see the
+/// "Migration notes" section in CLAUDE.md for the old -> new mapping.
 enum TeamMember {
-  SAAD_AHMED
-  SHARMIN
-  MUHAMMAD_NAUMAN
-  SALMAN
-  SHAHMIR
+  ZOHAIR_PARACHA
+  MUHAMMAD_SOHAIB
+  AMMAR_PARACHA
+  MUHAMMAD_UMER
+  GHULAM_HUSSAIN
+  YASIR_AHMAD
+  ZAINAB_PARACHA
+  FARAZ_HUSSAIN
+  MUHAMMAD_SUFYAN
+  AMIR_BALLI
+  SALMAN_IBAD
 }
 
 enum LeadStatus {
@@ -189,6 +198,25 @@ enum ChannelTag {
   TEXT_WHATSAPP_CHANNEL
 }
 
+/// Which country/region a LinkedIn connection belongs to — powers the
+/// "LinkedIn Connection Breakdown" property group.
+enum Region {
+  USA
+  AU
+  CA
+  UK
+}
+
+/// How a contact responded once a LinkedIn connection was made — part of
+/// the "LinkedIn Connection Breakdown" group, distinct from the broader
+/// InterestedResponseChannel (which channel they responded on, not what
+/// kind of response it was).
+enum LinkedinResponseType {
+  INTERESTED
+  NOT_INTERESTED
+  BAD_TIMING
+}
+
 model Contact {
   id             String   @id @default(uuid())
   firstName      String
@@ -242,6 +270,17 @@ model Contact {
   linkedinFollowUp4        Boolean?
   linkedinLifecycleStage   LinkedinLifecycleStage?
   interestedResponseFrom   InterestedResponseChannel?
+
+  /// "LinkedIn Connection Breakdown" — a separate, more granular tracking
+  /// group from the LinkedIn Outreach fields above, for a per-region view of
+  /// where a connection stands. All nullable/optional, same as the rest of
+  /// the LinkedIn tracking fields.
+  linkedinRegion           Region?
+  linkedinRequestSent      Boolean?
+  linkedinRequestAccepted  Boolean?
+  linkedinResponse         Boolean?
+  linkedinMeetingBooked    Boolean?
+  linkedinResponseType     LinkedinResponseType?
 
   websiteUrl        String?
   websiteTraffic    Int?

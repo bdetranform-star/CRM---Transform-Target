@@ -19,6 +19,8 @@ import {
   LINKEDIN_CONNECTION_STATUS_LABELS,
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
 
 export type ContactRow = Omit<Contact, never> & {
@@ -243,6 +245,36 @@ export const contactColumns = [
     cell: (info) => {
       const v = info.getValue();
       return v ? INTERESTED_RESPONSE_CHANNEL_LABELS[v] : "—";
+    },
+  }),
+  columnHelper.accessor("linkedinRegion", {
+    header: "Region",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? REGION_LABELS[v] : "—";
+    },
+  }),
+  columnHelper.accessor("linkedinRequestSent", {
+    header: "Request Sent",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinRequestAccepted", {
+    header: "Request Accepted",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinResponse", {
+    header: "Response",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinMeetingBooked", {
+    header: "Meeting Booked",
+    cell: (info) => (info.getValue() ? "Yes" : "No"),
+  }),
+  columnHelper.accessor("linkedinResponseType", {
+    header: "Response Type",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? LINKEDIN_RESPONSE_TYPE_LABELS[v] : "—";
     },
   }),
   columnHelper.accessor("lastContactDate", {

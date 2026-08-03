@@ -276,19 +276,27 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     one picker, parameterized by field list — filtered to hide properties
     already used in another row of the *same* bulk edit, since setting one
     field twice in one operation is never meaningful) + a type-appropriate
-    value input (dropdown for enum, text for string, number input for
-    number, Yes/No dropdown for the one boolean field, `smsOptOut`) from
-    `lib/contact-bulk-edit.ts`'s `BULK_EDIT_FIELDS`. That field list is
-    deliberately a subset of every Contact column: `email` is excluded
-    (unique constraint — setting the same email on 2+ rows in one
-    `updateMany` would violate it), `firstName`/`lastName` are excluded
-    (per-person identity; the same name across a batch of different people
-    is never actually intended), and `avatarUrl`/`id`/`createdAt`/
-    `updatedAt`/`lastContactDate`/`lastInterestedReply`/`aiInsightsSummary`/
-    `aiInsightsGeneratedAt` are excluded as system-managed/computed. Clicking
-    "Review changes" moves to a second stage in the same dialog listing
-    each pending change in plain language ("Contact Owner → Shahmir") plus
-    the affected count, then "Apply to N contacts" is the actual commit —
+    value input from `lib/contact-bulk-edit.ts`'s `BULK_EDIT_FIELDS`: a
+    dropdown for `enum` fields, plain text for `string`, a number input for
+    `number`, a Yes/No dropdown for `boolean` fields (`smsOptOut`, the 4
+    LinkedIn follow-ups, and the 4 Yes/No "LinkedIn Connection Breakdown"
+    fields below), the shared `ChannelTagToggleGroup` for the one
+    `array_enum` field (`channelTags` — picking a new set of tags *replaces*
+    each selected contact's tags, matching every other field's "set to
+    this value" semantics, not an add/remove merge), and the shared
+    `DatePicker` for the one `date` field (`linkedinConnectedOn`). This
+    field list covers essentially every Contact property (including all the
+    LinkedIn Outreach and LinkedIn Connection Breakdown fields — see "Data
+    model" below), deliberately excluding only: `email` (unique constraint
+    — setting the same email on 2+ rows in one `updateMany` would violate
+    it), `firstName`/`lastName` (per-person identity; the same name across
+    a batch of different people is never actually intended), and
+    `avatarUrl`/`id`/`createdAt`/`updatedAt`/`lastContactDate`/
+    `lastInterestedReply`/`aiInsightsSummary`/`aiInsightsGeneratedAt`
+    (system-managed/computed). Clicking "Review changes" moves to a second
+    stage in the same dialog listing each pending change in plain language
+    ("Contact Owner → Yasir Ahmad") plus the affected count, then "Apply to
+    N contacts" is the actual commit —
     two distinct steps, not a single click, since this can touch many
     records at once. `bulkUpdateContactProperties()` (`app/actions/
     contacts.ts`) re-validates every change server-side via
@@ -315,7 +323,8 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   actions the old panel had — Log a call / Log LinkedIn touch / Send SMS /
   Reply logged / Open LinkedIn profile / Delete — plus `SequenceProgress`);
   a ~320px left column (`property-sections.tsx`'s `ContactInfoSection` /
-  `CompanyInfoSection` / `LeadInfoSection` / `LinkedinOutreachSection`, each
+  `CompanyInfoSection` / `LeadInfoSection` / `LinkedinOutreachSection` /
+  `LinkedinConnectionBreakdownSection`, each
   independently toggled between a read-only display and an inline edit form
   calling `updateContact` with just that section's fields — a genuine
   partial update, see the `contactUpdateSchema` note under "Data model"
@@ -341,13 +350,18 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     Status and Lifecycle of LinkedIn as side-by-side `Select`s, LinkedIn
     Connected On as a `DatePicker` right below them, the pitch note as a
     `Textarea`, the 4 follow-ups as a 2x2 grid of `Switch` toggles, and
-    Interested Response From as a final `Select`. Right below the Lead
-    source / Lead source captured row sits **Channel Tag**
-    (`ChannelTagToggleGroup`, `components/channel-tags.tsx`) — a pill/chip
-    multi-select, not a dropdown, since a contact can carry any combination
-    of the 4 channels (or none): each button independently toggles on/off,
-    filled with that channel's color when active and plain outline/gray
-    otherwise.
+    Interested Response From as a final `Select`. A second bordered section,
+    "LinkedIn Connection Breakdown", sits right after it (also before
+    Cancel/Create) — Region and Response Type as side-by-side `Select`s,
+    then Request Sent / Request Accepted / Response / Meeting Booked as a
+    2x2 grid of Yes/No `Select` dropdowns (`YesNoSelect`,
+    `components/ui/yes-no-select.tsx`) rather than `Switch` toggles, per
+    spec. Right below the Lead source / Lead source captured row sits
+    **Channel Tag** (`ChannelTagToggleGroup`, `components/channel-tags.tsx`)
+    — a pill/chip multi-select, not a dropdown, since a contact can carry
+    any combination of the 4 channels (or none): each button independently
+    toggles on/off, filled with that channel's color when active and plain
+    outline/gray otherwise.
   - **Avatar photo upload** — clicking the avatar circle in the identity
     card opens `AvatarUploadDialog` (`components/contact-detail/
     avatar-upload-dialog.tsx`): drag-and-drop or a file picker, client-side
@@ -630,15 +644,22 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     Follow Up LinkedIn columns (parsed from Yes/No/True/False/1/0 via
     `parseBooleanLike`), Lifecycle of LinkedIn, Interested Response From,
     Channel Tag (multi-value — split on comma/semicolon/pipe, each piece
-    matched independently via `detectChannelTags`), and LinkedIn Connected On
+    matched independently via `detectChannelTags`), LinkedIn Connected On
     (`parseDateLike`, accepting this app's own US `MM/DD/YYYY` export format
-    or ISO). The three enum-label fields (LinkedIn Status, Lifecycle of
-    LinkedIn, Interested Response From) match case-insensitively against
-    either the human-readable label or the raw enum value via a shared
-    `buildLabelLookup()` helper, so a re-imported export from this same app
-    round-trips correctly. An unrecognized header is simply left unmapped
-    (ignored), never an error — matching the existing convention for any
-    extra column in an uploaded file.
+    or ISO), and the "LinkedIn Connection Breakdown" group's own 6 columns
+    (Region, Request Sent, Request Accepted, Response, Meeting Booked,
+    Response Type — the 4 Yes/No ones via the same `parseBooleanLike` as the
+    follow-up columns). The bare header "Response" deliberately maps to this
+    group's `linkedinResponse` boolean rather than `interestedResponseFrom`
+    (still reachable via "responsefrom"/"interestedresponse"/
+    "interestedresponsefrom") since it's this group's own literal column
+    name per spec. The enum-label fields (LinkedIn Status, Lifecycle of
+    LinkedIn, Interested Response From, Region, Response Type) match
+    case-insensitively against either the human-readable label or the raw
+    enum value via a shared `buildLabelLookup()` helper, so a re-imported
+    export from this same app round-trips correctly. An unrecognized header
+    is simply left unmapped (ignored), never an error — matching the
+    existing convention for any extra column in an uploaded file.
 - **Instantly.ai webhook** (`app/api/webhooks/instantly/route.ts`,
   `lib/instantly.ts`) — verifies a shared secret
   (`INSTANTLY_WEBHOOK_SECRET`, checked against the `x-instantly-secret`
@@ -699,18 +720,29 @@ mapping" below for exactly how existing seeded data was carried forward.
     contact's `industryDetail` might be `HVAC`, `JANITORIAL`, etc.).
   - `contactOwner: TeamMember` — **replaced**: used to be a free-text email
     drawn from a 100-address seeded pool (outreach sending mailboxes, not CRM
-    logins); now a fixed enum of the 5 real team members (`SAAD_AHMED`,
-    `SHARMIN`, `MUHAMMAD_NAUMAN`, `SALMAN`, `SHAHMIR` — `TEAM_MEMBER_ORDER`/
-    `TEAM_MEMBER_LABELS` in `lib/status-config.ts`). The old 100-email pool
-    (`lib/contact-owners.ts`'s prior `SEEDED_CONTACT_OWNER_POOL`) is gone
-    entirely from `Contact.contactOwner` — it was never meant to represent
-    CRM-user ownership, only sending accounts, and nothing else in the app
-    referenced those addresses, so there was nothing to preserve elsewhere.
-    `getContactOwnerPool()` (`app/actions/contacts.ts`) now just returns the
-    5-entry `TEAM_MEMBERS` list — always fully populated, unlike
-    `getContactOwners()` (`DISTINCT contactOwner FROM Contact`, correct only
-    for the Contacts table's owner *filter*, where an owner with zero
-    contacts would be noise).
+    logins); now a fixed enum of 11 real team members (`ZOHAIR_PARACHA`,
+    `MUHAMMAD_SOHAIB`, `AMMAR_PARACHA`, `MUHAMMAD_UMER`, `GHULAM_HUSSAIN`,
+    `YASIR_AHMAD`, `ZAINAB_PARACHA`, `FARAZ_HUSSAIN`, `MUHAMMAD_SUFYAN`,
+    `AMIR_BALLI`, `SALMAN_IBAD` — `TEAM_MEMBER_ORDER`/`TEAM_MEMBER_LABELS` in
+    `lib/status-config.ts`, the "simple config array" this roster is meant
+    to stay in — adding a 12th name later is one new enum value (a Postgres
+    `ALTER TYPE ... ADD VALUE` migration) plus one line in each of those two
+    arrays, nothing else). The old 100-email pool (`lib/contact-owners.ts`'s
+    prior `SEEDED_CONTACT_OWNER_POOL`) is gone entirely from
+    `Contact.contactOwner` — it was never meant to represent CRM-user
+    ownership, only sending accounts, and nothing else in the app referenced
+    those addresses, so there was nothing to preserve elsewhere. This same
+    enum's earlier 5-name placeholder roster (`SAAD_AHMED`/`SHARMIN`/
+    `MUHAMMAD_NAUMAN`/`SALMAN`/`SHAHMIR`) was itself later replaced by this
+    11-name roster in migration
+    `20260803000000_rename_team_members_add_connection_breakdown` — see
+    "Migration notes" below for the old → new mapping. `getContactOwnerPool()`
+    (`app/actions/contacts.ts`) now just returns the 11-entry `TEAM_MEMBERS`
+    list — always fully populated, unlike `getContactOwners()` (`DISTINCT
+    contactOwner FROM Contact`, correct only for the Contacts table's owner
+    *filter*, where an owner with zero contacts would be noise). The same
+    enum backs `Task.assignedTo` too, so the 11 names are assignable to
+    tasks as well as contacts.
   - Activity tracking: `lastContactDate` (new, set to `now()` whenever any
     `Touch` is logged), `lastInterestedReply` (new, set to `now()` only when
     a `Touch` is logged with outcome `CONNECTED` or `REPLIED`) — both
@@ -776,6 +808,26 @@ mapping" below for exactly how existing seeded data was carried forward.
     Advanced Filters and sortable/visible as Contacts table columns (the 4
     follow-up booleans are filterable but not sortable, matching the
     existing convention for `smsOptOut`).
+  - "LinkedIn Connection Breakdown" (all new, all nullable — a separate,
+    more granular property group from LinkedIn Outreach above, see migration
+    `20260803000000_rename_team_members_add_connection_breakdown`):
+    `linkedinRegion` (enum `Region`: `USA` / `AU` / `CA` / `UK`),
+    `linkedinRequestSent`, `linkedinRequestAccepted`, `linkedinResponse`,
+    `linkedinMeetingBooked` (all plain `Boolean?`, each edited as a Yes/No
+    `Select` dropdown — `components/ui/yes-no-select.tsx` — rather than a
+    `Switch`, unlike the visually similar LinkedIn Outreach follow-up
+    fields; the dropdown-vs-switch choice is purely a UI convention per
+    field, both still store/validate as a plain optional boolean under the
+    hood), and `linkedinResponseType` (enum `LinkedinResponseType`:
+    `INTERESTED` / `NOT_INTERESTED` / `BAD_TIMING`, distinct from the
+    LinkedIn Outreach group's `interestedResponseFrom`, which channel a
+    reply came on, not what kind of reply it was). Editable via the New
+    Contact form's "LinkedIn Connection Breakdown" section and the contact
+    detail page's `LinkedinConnectionBreakdownSection`; all filterable via
+    Advanced Filters (the 4 Yes/No fields reuse the existing `boolean`
+    filter type) and visible as Contacts table columns; all included in
+    CSV import field mapping (`Region`/`Request Sent`/`Request Accepted`/
+    `Response`/`Meeting Booked`/`Response Type` headers) and in Bulk Edit.
 - **`Touch`** — append-only log of every outreach action, any channel
   (`EMAIL` / `LINKEDIN` / `CALL` / `SMS` / `NOTE`), any direction
   (`OUTBOUND`/`INBOUND`). `outcome` is a free-text string (not its own enum)
@@ -885,6 +937,35 @@ explicitly rather than left to fail at migration time.
   `(ARRAY[...5 names...])[(abs(hashtext("id")) % 5) + 1]`. This is a
   placeholder assignment, not a real ownership decision — reassign manually
   per contact afterward if actual ownership matters.
+- **`TeamMember` enum roster** (5-name placeholder roster → 11-name real
+  roster, migration
+  `20260803000000_rename_team_members_add_connection_breakdown`): unlike
+  every other enum swap in this file, this one is a clean 1:1 **rename**,
+  not a collapse — Postgres's `ALTER TYPE ... RENAME VALUE` updates every
+  row referencing the old value in place, so no `CASE`-mapped backfill was
+  needed and no data (`Contact.contactOwner` or `Task.assignedTo`) was
+  lost or reassigned:
+  | Old value | New value |
+  |---|---|
+  | `SAAD_AHMED` | `ZOHAIR_PARACHA` |
+  | `SHARMIN` | `MUHAMMAD_SOHAIB` |
+  | `MUHAMMAD_NAUMAN` | `AMMAR_PARACHA` |
+  | `SALMAN` | `MUHAMMAD_UMER` |
+  | `SHAHMIR` | `GHULAM_HUSSAIN` |
+
+  `YASIR_AHMAD`, `ZAINAB_PARACHA`, `FARAZ_HUSSAIN`, `MUHAMMAD_SUFYAN`,
+  `AMIR_BALLI`, and `SALMAN_IBAD` are the 6 brand-new names with no old
+  equivalent, added via plain `ALTER TYPE ... ADD VALUE` in the same
+  migration. Verified post-migration by `groupBy`-ing `Contact.contactOwner`
+  and reading back `Task.assignedTo` directly against real seeded data —
+  every existing assignment landed on its renamed value with zero rows
+  lost. Since `ALTER TYPE ... ADD VALUE` can't be used in the same
+  transaction as a query referencing the new value (a Postgres restriction),
+  and `prisma migrate dev`'s interactive confirmation prompt for
+  "destructive-looking" enum changes isn't available in this non-interactive
+  environment, this migration's SQL was hand-written (mirroring this app's
+  established pattern of hand-writing migrations Prisma's own diffing
+  can't safely generate) rather than generated by `prisma migrate dev`.
 - **`lastContactDate` / `lastInterestedReply`** (new columns, both
   nullable): backfilled from existing `Touch` history via a correlated
   subquery (`MAX(createdAt)` per `contactId`, the latter filtered to

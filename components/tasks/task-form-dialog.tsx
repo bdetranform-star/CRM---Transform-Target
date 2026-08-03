@@ -32,7 +32,19 @@ const formSchema = z.object({
   contactId: z.string(),
   title: z.string().min(1, "Task title is required"),
   dueDate: z.string(),
-  assignedTo: z.enum(["SAAD_AHMED", "SHARMIN", "MUHAMMAD_NAUMAN", "SALMAN", "SHAHMIR"]),
+  assignedTo: z.enum([
+    "ZOHAIR_PARACHA",
+    "MUHAMMAD_SOHAIB",
+    "AMMAR_PARACHA",
+    "MUHAMMAD_UMER",
+    "GHULAM_HUSSAIN",
+    "YASIR_AHMAD",
+    "ZAINAB_PARACHA",
+    "FARAZ_HUSSAIN",
+    "MUHAMMAD_SUFYAN",
+    "AMIR_BALLI",
+    "SALMAN_IBAD",
+  ]),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -62,7 +74,7 @@ export function TaskFormDialog({
       contactId: task?.contactId ?? "",
       title: task?.title ?? "",
       dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "",
-      assignedTo: task?.assignedTo ?? "SAAD_AHMED",
+      assignedTo: task?.assignedTo ?? "ZOHAIR_PARACHA",
     },
   });
 

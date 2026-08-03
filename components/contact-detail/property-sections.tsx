@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
+import { YesNoSelect } from "@/components/ui/yes-no-select";
 import {
   Select,
   SelectTrigger,
@@ -32,6 +33,8 @@ import {
   LINKEDIN_CONNECTION_STATUS_LABELS,
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -680,6 +683,133 @@ export function LinkedinOutreachSection({ contact, onSaved }: { contact: Contact
           <Field
             label="Interested Response From"
             value={contact.interestedResponseFrom ? INTERESTED_RESPONSE_CHANNEL_LABELS[contact.interestedResponseFrom] : null}
+          />
+        </div>
+      )}
+    </SectionShell>
+  );
+}
+
+export function LinkedinConnectionBreakdownSection({
+  contact,
+  onSaved,
+}: {
+  contact: Contact;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [values, setValues] = useState({
+    linkedinRegion: contact.linkedinRegion ?? "",
+    linkedinRequestSent: contact.linkedinRequestSent ?? null,
+    linkedinRequestAccepted: contact.linkedinRequestAccepted ?? null,
+    linkedinResponse: contact.linkedinResponse ?? null,
+    linkedinMeetingBooked: contact.linkedinMeetingBooked ?? null,
+    linkedinResponseType: contact.linkedinResponseType ?? "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSave() {
+    setSubmitting(true);
+    await save(values, contact.id, () => {
+      setEditing(false);
+      onSaved();
+    });
+    setSubmitting(false);
+  }
+
+  return (
+    <SectionShell
+      title="LinkedIn Connection Breakdown"
+      editing={editing}
+      onEdit={() => setEditing(true)}
+    >
+      {editing ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <Label>Region</Label>
+            <Select
+              value={values.linkedinRegion || undefined}
+              onValueChange={(v) => setValues((s) => ({ ...s, linkedinRegion: v as typeof s.linkedinRegion }))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(REGION_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Request Sent</Label>
+            <YesNoSelect
+              value={values.linkedinRequestSent}
+              onChange={(v) => setValues((s) => ({ ...s, linkedinRequestSent: v }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Request Accepted</Label>
+            <YesNoSelect
+              value={values.linkedinRequestAccepted}
+              onChange={(v) => setValues((s) => ({ ...s, linkedinRequestAccepted: v }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Response</Label>
+            <YesNoSelect
+              value={values.linkedinResponse}
+              onChange={(v) => setValues((s) => ({ ...s, linkedinResponse: v }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Meeting Booked</Label>
+            <YesNoSelect
+              value={values.linkedinMeetingBooked}
+              onChange={(v) => setValues((s) => ({ ...s, linkedinMeetingBooked: v }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Response Type</Label>
+            <Select
+              value={values.linkedinResponseType || undefined}
+              onValueChange={(v) =>
+                setValues((s) => ({ ...s, linkedinResponseType: v as typeof s.linkedinResponseType }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(LINKEDIN_RESPONSE_TYPE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={submitting}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Field label="Region" value={contact.linkedinRegion ? REGION_LABELS[contact.linkedinRegion] : null} />
+          <Field label="Request Sent" value={contact.linkedinRequestSent ? "Yes" : "No"} />
+          <Field label="Request Accepted" value={contact.linkedinRequestAccepted ? "Yes" : "No"} />
+          <Field label="Response" value={contact.linkedinResponse ? "Yes" : "No"} />
+          <Field label="Meeting Booked" value={contact.linkedinMeetingBooked ? "Yes" : "No"} />
+          <Field
+            label="Response Type"
+            value={contact.linkedinResponseType ? LINKEDIN_RESPONSE_TYPE_LABELS[contact.linkedinResponseType] : null}
           />
         </div>
       )}

@@ -13,6 +13,8 @@ import {
   LINKEDIN_CONNECTION_STATUS_LABELS,
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
 import { CHANNEL_TAG_LABELS } from "@/lib/channel-tags";
 
@@ -98,6 +100,18 @@ export const FILTERABLE_FIELDS: FilterFieldDef[] = [
     label: "Interested Response From",
     type: "enum",
     options: optionsFrom(INTERESTED_RESPONSE_CHANNEL_LABELS),
+  },
+  // LinkedIn Connection Breakdown
+  { field: "linkedinRegion", label: "Region", type: "enum", options: optionsFrom(REGION_LABELS) },
+  { field: "linkedinRequestSent", label: "Request Sent", type: "boolean" },
+  { field: "linkedinRequestAccepted", label: "Request Accepted", type: "boolean" },
+  { field: "linkedinResponse", label: "Response", type: "boolean" },
+  { field: "linkedinMeetingBooked", label: "Meeting Booked", type: "boolean" },
+  {
+    field: "linkedinResponseType",
+    label: "Response Type",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_RESPONSE_TYPE_LABELS),
   },
 ];
 

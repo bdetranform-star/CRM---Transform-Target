@@ -14,11 +14,17 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 const TEAM_MEMBERS: TeamMember[] = [
-  TeamMember.SAAD_AHMED,
-  TeamMember.SHARMIN,
-  TeamMember.MUHAMMAD_NAUMAN,
-  TeamMember.SALMAN,
-  TeamMember.SHAHMIR,
+  TeamMember.ZOHAIR_PARACHA,
+  TeamMember.MUHAMMAD_SOHAIB,
+  TeamMember.AMMAR_PARACHA,
+  TeamMember.MUHAMMAD_UMER,
+  TeamMember.GHULAM_HUSSAIN,
+  TeamMember.YASIR_AHMAD,
+  TeamMember.ZAINAB_PARACHA,
+  TeamMember.FARAZ_HUSSAIN,
+  TeamMember.MUHAMMAD_SUFYAN,
+  TeamMember.AMIR_BALLI,
+  TeamMember.SALMAN_IBAD,
 ];
 
 const SAMPLE_LEADS: Array<{
@@ -299,7 +305,7 @@ async function main() {
           contactId: connectedContact.id,
           title: "Send proposal follow-up",
           dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-          assignedTo: TeamMember.SAAD_AHMED,
+          assignedTo: TeamMember.ZOHAIR_PARACHA,
         },
       });
     }

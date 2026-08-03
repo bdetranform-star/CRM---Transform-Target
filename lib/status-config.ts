@@ -10,6 +10,8 @@ import type {
   LinkedinConnectionStatus,
   LinkedinLifecycleStage,
   InterestedResponseChannel,
+  Region,
+  LinkedinResponseType,
 } from "@prisma/client";
 
 export const LEAD_STATUS_ORDER: LeadStatus[] = [
@@ -153,19 +155,31 @@ export const LEAD_SOURCE_CAPTURED_LABELS: Record<LeadSourceCaptured, string> = {
 };
 
 export const TEAM_MEMBER_LABELS: Record<TeamMember, string> = {
-  SAAD_AHMED: "Saad Ahmed",
-  SHARMIN: "Sharmin",
-  MUHAMMAD_NAUMAN: "Muhammad Nauman",
-  SALMAN: "Salman",
-  SHAHMIR: "Shahmir",
+  ZOHAIR_PARACHA: "Zohair Paracha",
+  MUHAMMAD_SOHAIB: "Muhammad Sohaib",
+  AMMAR_PARACHA: "Ammar Paracha",
+  MUHAMMAD_UMER: "Muhammad Umer",
+  GHULAM_HUSSAIN: "Ghulam Hussain",
+  YASIR_AHMAD: "Yasir Ahmad",
+  ZAINAB_PARACHA: "Zainab Paracha",
+  FARAZ_HUSSAIN: "Faraz Hussain",
+  MUHAMMAD_SUFYAN: "Muhammad Sufyan",
+  AMIR_BALLI: "Amir Balli",
+  SALMAN_IBAD: "Salman Ibad",
 };
 
 export const TEAM_MEMBER_ORDER: TeamMember[] = [
-  "SAAD_AHMED",
-  "SHARMIN",
-  "MUHAMMAD_NAUMAN",
-  "SALMAN",
-  "SHAHMIR",
+  "ZOHAIR_PARACHA",
+  "MUHAMMAD_SOHAIB",
+  "AMMAR_PARACHA",
+  "MUHAMMAD_UMER",
+  "GHULAM_HUSSAIN",
+  "YASIR_AHMAD",
+  "ZAINAB_PARACHA",
+  "FARAZ_HUSSAIN",
+  "MUHAMMAD_SUFYAN",
+  "AMIR_BALLI",
+  "SALMAN_IBAD",
 ];
 
 export const DEAL_STAGE_ORDER: DealStage[] = [
@@ -227,4 +241,17 @@ export const INTERESTED_RESPONSE_CHANNEL_LABELS: Record<InterestedResponseChanne
   LINKEDIN: "LinkedIn",
   CALLING: "Calling",
   TEXT: "Text",
+};
+
+export const REGION_LABELS: Record<Region, string> = {
+  USA: "USA",
+  AU: "AU",
+  CA: "CA",
+  UK: "UK",
+};
+
+export const LINKEDIN_RESPONSE_TYPE_LABELS: Record<LinkedinResponseType, string> = {
+  INTERESTED: "Interested",
+  NOT_INTERESTED: "Not Interested",
+  BAD_TIMING: "Bad Timing",
 };

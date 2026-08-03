@@ -65,6 +65,12 @@ export async function POST(request: NextRequest) {
       interestedResponseFrom: row.interestedResponseFrom || null,
       channelTags: row.channelTags,
       linkedinConnectedOn: row.linkedinConnectedOn ?? null,
+      linkedinRegion: row.linkedinRegion || null,
+      linkedinRequestSent: row.linkedinRequestSent ?? null,
+      linkedinRequestAccepted: row.linkedinRequestAccepted ?? null,
+      linkedinResponse: row.linkedinResponse ?? null,
+      linkedinMeetingBooked: row.linkedinMeetingBooked ?? null,
+      linkedinResponseType: row.linkedinResponseType || null,
     })),
   });
 

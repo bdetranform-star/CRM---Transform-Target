@@ -9,9 +9,15 @@ import {
   LEAD_SOURCE_LABELS,
   LEAD_SOURCE_CAPTURED_LABELS,
   TEAM_MEMBER_LABELS,
+  LINKEDIN_CONNECTION_STATUS_LABELS,
+  LINKEDIN_LIFECYCLE_STAGE_LABELS,
+  INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
+import { CHANNEL_TAG_LABELS } from "@/lib/channel-tags";
 
-export type BulkEditFieldType = "string" | "enum" | "number" | "boolean";
+export type BulkEditFieldType = "string" | "enum" | "number" | "boolean" | "array_enum" | "date";
 
 export type BulkEditFieldDef = {
   field: string;
@@ -41,6 +47,7 @@ export const BULK_EDIT_FIELDS: BulkEditFieldDef[] = [
   { field: "cellPhone", label: "Cell Phone Number", type: "string" },
   { field: "linkedinUrl", label: "LinkedIn URL", type: "string" },
   { field: "company", label: "Company Name", type: "string" },
+  { field: "designation", label: "Designation", type: "string" },
   { field: "websiteUrl", label: "Website URL", type: "string" },
   { field: "streetAddress", label: "Street Address", type: "string" },
   { field: "city", label: "City", type: "string" },
@@ -64,10 +71,48 @@ export const BULK_EDIT_FIELDS: BulkEditFieldDef[] = [
     type: "enum",
     options: optionsFrom(LEAD_SOURCE_CAPTURED_LABELS),
   },
+  { field: "channelTags", label: "Channel Tag", type: "array_enum", options: optionsFrom(CHANNEL_TAG_LABELS) },
   { field: "websiteTraffic", label: "Website Traffic", type: "number" },
   { field: "numberOfEmployees", label: "Number of Employees", type: "number" },
   { field: "sequenceStep", label: "Sequence Step", type: "number" },
   { field: "smsOptOut", label: "SMS Opted Out", type: "boolean" },
+  // LinkedIn Outreach
+  {
+    field: "linkedinConnectionStatus",
+    label: "LinkedIn Status",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_CONNECTION_STATUS_LABELS),
+  },
+  { field: "linkedinConnectedOn", label: "LinkedIn Connected On", type: "date" },
+  { field: "linkedinPitchNote", label: "Pitch / Connection Request Note", type: "string" },
+  { field: "linkedinFollowUp1", label: "1st Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp2", label: "2nd Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp3", label: "3rd Follow Up LinkedIn", type: "boolean" },
+  { field: "linkedinFollowUp4", label: "4th Follow Up LinkedIn", type: "boolean" },
+  {
+    field: "linkedinLifecycleStage",
+    label: "Lifecycle of LinkedIn",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_LIFECYCLE_STAGE_LABELS),
+  },
+  {
+    field: "interestedResponseFrom",
+    label: "Interested Response From",
+    type: "enum",
+    options: optionsFrom(INTERESTED_RESPONSE_CHANNEL_LABELS),
+  },
+  // LinkedIn Connection Breakdown
+  { field: "linkedinRegion", label: "Region", type: "enum", options: optionsFrom(REGION_LABELS) },
+  { field: "linkedinRequestSent", label: "Request Sent", type: "boolean" },
+  { field: "linkedinRequestAccepted", label: "Request Accepted", type: "boolean" },
+  { field: "linkedinResponse", label: "Response", type: "boolean" },
+  { field: "linkedinMeetingBooked", label: "Meeting Booked", type: "boolean" },
+  {
+    field: "linkedinResponseType",
+    label: "Response Type",
+    type: "enum",
+    options: optionsFrom(LINKEDIN_RESPONSE_TYPE_LABELS),
+  },
 ];
 
 export const BULK_EDIT_FIELD_MAP: Record<string, BulkEditFieldDef> = Object.fromEntries(
@@ -102,6 +147,11 @@ export function isBulkEditChangeComplete(change: BulkEditChange): boolean {
   if (!def) return false;
   if (def.type === "boolean") return change.value === "true" || change.value === "false";
   if (def.type === "enum") return def.options?.some((o) => o.value === change.value) ?? false;
+  if (def.type === "array_enum") {
+    const allowed = new Set(def.options?.map((o) => o.value));
+    return change.value.split(",").filter(Boolean).some((v) => allowed.has(v));
+  }
+  if (def.type === "date") return !Number.isNaN(new Date(change.value).getTime());
   return change.value.trim() !== "";
 }
 
@@ -112,10 +162,20 @@ export function describeBulkEditChange(change: BulkEditChange): string {
     const label = def.options?.find((o) => o.value === change.value)?.label ?? change.value;
     return `${def.label} → ${label}`;
   }
+  if (def.type === "array_enum") {
+    const labels = change.value
+      .split(",")
+      .filter(Boolean)
+      .map((v) => def.options?.find((o) => o.value === v)?.label ?? v);
+    return `${def.label} → ${labels.join(", ")}`;
+  }
   if (def.type === "boolean") {
     return `${def.label} → ${change.value === "true" ? "Yes" : "No"}`;
   }
   if (def.type === "number") {
+    return `${def.label} → ${change.value}`;
+  }
+  if (def.type === "date") {
     return `${def.label} → ${change.value}`;
   }
   return `${def.label} → "${change.value}"`;
@@ -139,11 +199,18 @@ export function buildBulkUpdateData(changes: BulkEditChange[]): Prisma.ContactUp
     if (def.type === "enum") {
       const allowed = new Set(def.options?.map((o) => o.value));
       if (allowed.has(change.value)) data[def.field] = change.value;
+    } else if (def.type === "array_enum") {
+      const allowed = new Set(def.options?.map((o) => o.value));
+      const values = change.value.split(",").filter((v) => allowed.has(v));
+      if (values.length > 0) data[def.field] = values;
     } else if (def.type === "number") {
       const num = Number(change.value);
       if (!Number.isNaN(num)) data[def.field] = num;
     } else if (def.type === "boolean") {
       if (change.value === "true" || change.value === "false") data[def.field] = change.value === "true";
+    } else if (def.type === "date") {
+      const date = new Date(change.value);
+      if (!Number.isNaN(date.getTime())) data[def.field] = date;
     } else if (change.value.trim() !== "") {
       data[def.field] = change.value;
     }

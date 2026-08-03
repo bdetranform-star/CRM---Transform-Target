@@ -21,6 +21,8 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { PropertyPicker } from "./property-picker";
+import { ChannelTagToggleGroup } from "@/components/channel-tags";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   BULK_EDIT_FIELDS,
   BULK_EDIT_FIELD_MAP,
@@ -30,6 +32,7 @@ import {
   type BulkEditFieldDef,
 } from "@/lib/contact-bulk-edit";
 import { bulkUpdateContactProperties } from "@/app/actions/contacts";
+import type { ChannelTag } from "@prisma/client";
 
 function emptyChange(): BulkEditChange {
   return { field: "", value: "" };
@@ -78,6 +81,22 @@ function BulkValueEditor({
 
   if (def.type === "number") {
     return <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} />;
+  }
+
+  if (def.type === "array_enum") {
+    const selected = value ? (value.split(",") as ChannelTag[]) : [];
+    return (
+      <ChannelTagToggleGroup value={selected} onChange={(next) => onChange(next.join(","))} />
+    );
+  }
+
+  if (def.type === "date") {
+    return (
+      <DatePicker
+        value={value ? new Date(value) : undefined}
+        onChange={(date) => onChange(date ? date.toISOString().slice(0, 10) : "")}
+      />
+    );
   }
 
   return <Input value={value} onChange={(e) => onChange(e.target.value)} />;

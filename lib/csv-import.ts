@@ -6,12 +6,16 @@ import type {
   LinkedinConnectionStatus,
   LinkedinLifecycleStage,
   InterestedResponseChannel,
+  Region,
+  LinkedinResponseType,
 } from "@prisma/client";
 import {
   TEAM_MEMBER_LABELS,
   LINKEDIN_CONNECTION_STATUS_LABELS,
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
 import { CHANNEL_TAG_LABELS, CHANNEL_TAG_ORDER } from "@/lib/channel-tags";
 
@@ -35,7 +39,13 @@ export type ImportField =
   | "linkedinLifecycleStage"
   | "interestedResponseFrom"
   | "channelTags"
-  | "linkedinConnectedOn";
+  | "linkedinConnectedOn"
+  | "linkedinRegion"
+  | "linkedinRequestSent"
+  | "linkedinRequestAccepted"
+  | "linkedinResponse"
+  | "linkedinMeetingBooked"
+  | "linkedinResponseType";
 
 const HEADER_ALIASES: Record<string, ImportField> = {
   // name
@@ -114,7 +124,6 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   // interested response from
   interestedresponsefrom: "interestedResponseFrom",
   interestedresponse: "interestedResponseFrom",
-  response: "interestedResponseFrom",
   responsefrom: "interestedResponseFrom",
   // channel tag
   channeltag: "channelTags",
@@ -123,6 +132,17 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   linkedinconnectedon: "linkedinConnectedOn",
   connectedon: "linkedinConnectedOn",
   connectiondate: "linkedinConnectedOn",
+  // LinkedIn Connection Breakdown
+  region: "linkedinRegion",
+  requestsent: "linkedinRequestSent",
+  requestaccepted: "linkedinRequestAccepted",
+  // Deliberately claims the bare "response" header for this Yes/No
+  // breakdown field rather than interestedResponseFrom (still reachable via
+  // "responsefrom"/"interestedresponse"/"interestedresponsefrom" above) —
+  // "Response" is this group's own literal column name per spec.
+  response: "linkedinResponse",
+  meetingbooked: "linkedinMeetingBooked",
+  responsetype: "linkedinResponseType",
 };
 
 function normalizeHeaderKey(header: string): string {
@@ -248,6 +268,16 @@ export function detectInterestedResponseChannel(value: string): InterestedRespon
   return INTERESTED_RESPONSE_CHANNEL_MAP[value.trim().toLowerCase()];
 }
 
+const REGION_MAP = buildLabelLookup(REGION_LABELS);
+export function detectRegion(value: string): Region | undefined {
+  return REGION_MAP[value.trim().toLowerCase()];
+}
+
+const LINKEDIN_RESPONSE_TYPE_MAP = buildLabelLookup(LINKEDIN_RESPONSE_TYPE_LABELS);
+export function detectLinkedinResponseType(value: string): LinkedinResponseType | undefined {
+  return LINKEDIN_RESPONSE_TYPE_MAP[value.trim().toLowerCase()];
+}
+
 const CHANNEL_TAG_MAP = buildLabelLookup(CHANNEL_TAG_LABELS);
 /** Channel Tag is multi-value — splits on comma/semicolon/pipe, matches each piece independently. */
 export function detectChannelTags(value: string): ChannelTag[] {
@@ -309,6 +339,12 @@ export type MappedImportRow = {
   interestedResponseFrom?: InterestedResponseChannel;
   channelTags: ChannelTag[];
   linkedinConnectedOn?: Date;
+  linkedinRegion?: Region;
+  linkedinRequestSent?: boolean;
+  linkedinRequestAccepted?: boolean;
+  linkedinResponse?: boolean;
+  linkedinMeetingBooked?: boolean;
+  linkedinResponseType?: LinkedinResponseType;
 };
 
 /** True only when every recognized field on the row is blank/unset — the sole reason to skip a row. */
@@ -332,6 +368,12 @@ function isRowEffectivelyEmpty(row: MappedImportRow): boolean {
     row.linkedinFollowUp3 === undefined &&
     row.linkedinFollowUp4 === undefined &&
     row.linkedinConnectedOn === undefined &&
+    row.linkedinRegion === undefined &&
+    row.linkedinRequestSent === undefined &&
+    row.linkedinRequestAccepted === undefined &&
+    row.linkedinResponse === undefined &&
+    row.linkedinMeetingBooked === undefined &&
+    row.linkedinResponseType === undefined &&
     row.channelTags.length === 0
     // industry is deliberately excluded — it always carries a default value
     // (FACILITY_MAINTENANCE_COMPANIES) regardless of whether the row had any
@@ -406,11 +448,19 @@ export function mapCsvRows(headers: string[], rows: string[][]): MapCsvRowsResul
         field === "linkedinFollowUp1" ||
         field === "linkedinFollowUp2" ||
         field === "linkedinFollowUp3" ||
-        field === "linkedinFollowUp4"
+        field === "linkedinFollowUp4" ||
+        field === "linkedinRequestSent" ||
+        field === "linkedinRequestAccepted" ||
+        field === "linkedinResponse" ||
+        field === "linkedinMeetingBooked"
       ) {
         result[field] = parseBooleanLike(value);
       } else if (field === "linkedinConnectedOn") {
         result.linkedinConnectedOn = parseDateLike(value);
+      } else if (field === "linkedinRegion") {
+        result.linkedinRegion = detectRegion(value);
+      } else if (field === "linkedinResponseType") {
+        result.linkedinResponseType = detectLinkedinResponseType(value);
       } else {
         result[field] = value;
       }

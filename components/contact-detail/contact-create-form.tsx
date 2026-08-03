@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ChannelTagToggleGroup } from "@/components/channel-tags";
 import { DatePicker } from "@/components/ui/date-picker";
+import { YesNoSelect } from "@/components/ui/yes-no-select";
 import {
   Select,
   SelectTrigger,
@@ -32,6 +33,8 @@ import {
   linkedinLifecycleStageEnum,
   interestedResponseChannelEnum,
   channelTagEnum,
+  regionEnum,
+  linkedinResponseTypeEnum,
 } from "@/lib/validations";
 import { createContact, getContactOwnerPool } from "@/app/actions/contacts";
 import {
@@ -45,6 +48,8 @@ import {
   LINKEDIN_CONNECTION_STATUS_LABELS,
   LINKEDIN_LIFECYCLE_STAGE_LABELS,
   INTERESTED_RESPONSE_CHANNEL_LABELS,
+  REGION_LABELS,
+  LINKEDIN_RESPONSE_TYPE_LABELS,
 } from "@/lib/status-config";
 
 // Transform-free schema matching what the inputs below actually produce —
@@ -84,6 +89,12 @@ const formSchema = z.object({
   linkedinFollowUp4: z.boolean(),
   linkedinLifecycleStage: z.union([linkedinLifecycleStageEnum, z.literal("")]),
   interestedResponseFrom: z.union([interestedResponseChannelEnum, z.literal("")]),
+  linkedinRegion: z.union([regionEnum, z.literal("")]),
+  linkedinRequestSent: z.boolean().optional(),
+  linkedinRequestAccepted: z.boolean().optional(),
+  linkedinResponse: z.boolean().optional(),
+  linkedinMeetingBooked: z.boolean().optional(),
+  linkedinResponseType: z.union([linkedinResponseTypeEnum, z.literal("")]),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -141,6 +152,12 @@ export function ContactCreateForm({
       linkedinFollowUp4: false,
       linkedinLifecycleStage: "",
       interestedResponseFrom: "",
+      linkedinRegion: "",
+      linkedinRequestSent: undefined,
+      linkedinRequestAccepted: undefined,
+      linkedinResponse: undefined,
+      linkedinMeetingBooked: undefined,
+      linkedinResponseType: "",
     },
   });
 
@@ -170,6 +187,12 @@ export function ContactCreateForm({
   const linkedinFollowUp2 = watch("linkedinFollowUp2");
   const linkedinFollowUp3 = watch("linkedinFollowUp3");
   const linkedinFollowUp4 = watch("linkedinFollowUp4");
+  const linkedinRegion = watch("linkedinRegion");
+  const linkedinRequestSent = watch("linkedinRequestSent");
+  const linkedinRequestAccepted = watch("linkedinRequestAccepted");
+  const linkedinResponse = watch("linkedinResponse");
+  const linkedinMeetingBooked = watch("linkedinMeetingBooked");
+  const linkedinResponseType = watch("linkedinResponseType");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -501,6 +524,78 @@ export function ContactCreateForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <h3 className="mb-3 text-sm font-semibold">LinkedIn Connection Breakdown</h3>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Region</Label>
+              <Select
+                value={linkedinRegion || undefined}
+                onValueChange={(v) => setValue("linkedinRegion", v as FormValues["linkedinRegion"])}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(REGION_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Response Type</Label>
+              <Select
+                value={linkedinResponseType || undefined}
+                onValueChange={(v) => setValue("linkedinResponseType", v as FormValues["linkedinResponseType"])}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(LINKEDIN_RESPONSE_TYPE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Request Sent</Label>
+              <YesNoSelect
+                value={linkedinRequestSent}
+                onChange={(v) => setValue("linkedinRequestSent", v)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Request Accepted</Label>
+              <YesNoSelect
+                value={linkedinRequestAccepted}
+                onChange={(v) => setValue("linkedinRequestAccepted", v)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Response</Label>
+              <YesNoSelect value={linkedinResponse} onChange={(v) => setValue("linkedinResponse", v)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Meeting Booked</Label>
+              <YesNoSelect
+                value={linkedinMeetingBooked}
+                onChange={(v) => setValue("linkedinMeetingBooked", v)}
+              />
+            </div>
           </div>
         </div>
       </div>

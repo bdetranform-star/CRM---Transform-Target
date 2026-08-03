@@ -157,6 +157,8 @@ const SORTABLE_FIELDS = new Set([
   "linkedinConnectedOn",
   "linkedinLifecycleStage",
   "interestedResponseFrom",
+  "linkedinRegion",
+  "linkedinResponseType",
 ]);
 
 export async function getContactsTable(params: ContactsTableParams) {

@@ -81,11 +81,17 @@ export const leadSourceCapturedEnum = z.enum([
 ]);
 
 export const teamMemberEnum = z.enum([
-  "SAAD_AHMED",
-  "SHARMIN",
-  "MUHAMMAD_NAUMAN",
-  "SALMAN",
-  "SHAHMIR",
+  "ZOHAIR_PARACHA",
+  "MUHAMMAD_SOHAIB",
+  "AMMAR_PARACHA",
+  "MUHAMMAD_UMER",
+  "GHULAM_HUSSAIN",
+  "YASIR_AHMAD",
+  "ZAINAB_PARACHA",
+  "FARAZ_HUSSAIN",
+  "MUHAMMAD_SUFYAN",
+  "AMIR_BALLI",
+  "SALMAN_IBAD",
 ]);
 
 export const dealStageEnum = z.enum([
@@ -122,6 +128,10 @@ export const channelTagEnum = z.enum([
   "COLD_CALLING_CHANNEL",
   "TEXT_WHATSAPP_CHANNEL",
 ]);
+
+export const regionEnum = z.enum(["USA", "AU", "CA", "UK"]);
+
+export const linkedinResponseTypeEnum = z.enum(["INTERESTED", "NOT_INTERESTED", "BAD_TIMING"]);
 
 export const channelEnum = z.enum(["EMAIL", "LINKEDIN", "CALL", "SMS", "NOTE"]);
 export const directionEnum = z.enum(["OUTBOUND", "INBOUND"]);
@@ -215,6 +225,24 @@ export const contactCreateSchema = z.object({
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
   interestedResponseFrom: z
     .union([interestedResponseChannelEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  // "LinkedIn Connection Breakdown" group — a Yes/No dropdown, not a
+  // Switch, but the authoritative shape is still a plain boolean like
+  // linkedinFollowUp1-4 above: every caller (New Contact form, the detail
+  // page's edit section, bulk edit) ends up sending a real JS boolean, not
+  // the string "true"/"false" (that conversion happens client-side, inside
+  // YesNoSelect's own onChange, before it ever reaches this schema).
+  linkedinRegion: z
+    .union([regionEnum, z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  linkedinRequestSent: z.boolean().optional(),
+  linkedinRequestAccepted: z.boolean().optional(),
+  linkedinResponse: z.boolean().optional(),
+  linkedinMeetingBooked: z.boolean().optional(),
+  linkedinResponseType: z
+    .union([linkedinResponseTypeEnum, z.literal("")])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
 });
@@ -311,6 +339,12 @@ export const importContactRowSchema = z.object({
   interestedResponseFrom: z.union([interestedResponseChannelEnum, z.literal("")]).optional().default(""),
   channelTags: z.array(channelTagEnum).optional().default([]),
   linkedinConnectedOn: z.coerce.date().optional(),
+  linkedinRegion: z.union([regionEnum, z.literal("")]).optional().default(""),
+  linkedinRequestSent: z.boolean().optional(),
+  linkedinRequestAccepted: z.boolean().optional(),
+  linkedinResponse: z.boolean().optional(),
+  linkedinMeetingBooked: z.boolean().optional(),
+  linkedinResponseType: z.union([linkedinResponseTypeEnum, z.literal("")]).optional().default(""),
 });
 
 export const importContactsSchema = z.object({
