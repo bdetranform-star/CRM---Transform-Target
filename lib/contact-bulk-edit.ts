@@ -14,6 +14,7 @@ import {
   INTERESTED_RESPONSE_CHANNEL_LABELS,
   REGION_LABELS,
   LINKEDIN_RESPONSE_TYPE_LABELS,
+  EMAIL_HOST_PROVIDER_LABELS,
 } from "@/lib/status-config";
 import { CHANNEL_TAG_LABELS } from "@/lib/channel-tags";
 
@@ -43,6 +44,12 @@ function optionsFrom(labels: Record<string, string>) {
  */
 export const BULK_EDIT_FIELDS: BulkEditFieldDef[] = [
   { field: "jobTitle", label: "Job Title", type: "string" },
+  {
+    field: "emailHostProvider",
+    label: "Email Host Provider",
+    type: "enum",
+    options: optionsFrom(EMAIL_HOST_PROVIDER_LABELS),
+  },
   { field: "workPhone", label: "Work Phone Number", type: "string" },
   { field: "cellPhone", label: "Cell Phone Number", type: "string" },
   { field: "linkedinUrl", label: "LinkedIn URL", type: "string" },

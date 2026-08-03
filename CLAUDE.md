@@ -191,9 +191,9 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
       no "is equal to", since exact phone-format matching isn't useful.
     - `enum` (Lifecycle Stage, Lead Status, Industry, Industry Detail,
       Contact Owner, Lead Source, Lead Source Captured, LinkedIn Status,
-      Lifecycle of LinkedIn, Interested Response From): is any of / is none
-      of, each backed by a searchable multi-select checklist of the enum's
-      real values (`SearchableChecklist`).
+      Lifecycle of LinkedIn, Interested Response From, Email Host Provider):
+      is any of / is none of, each backed by a searchable multi-select
+      checklist of the enum's real values (`SearchableChecklist`).
     - `number` (Website Traffic, Number of Employees): equals / greater than
       / less than / between (two inputs).
     - `date` (Last Interested Reply, Last Contact Date, Created Date,
@@ -398,8 +398,34 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
   independently toggled between a read-only display and an inline edit form
   calling `updateContact` with just that section's fields — a genuine
   partial update, see the `contactUpdateSchema` note under "Data model"
-  below — plus a read-only `DatesSection`); and a right-side `Overview`/`Activities` tab pair
-  (`Tabs`). Overview shows `ContactInsightsPanel` (see below) and the 5 most
+  below — plus a read-only `DatesSection`); and a right-side
+  `Overview`/`Activities` tab pair (`Tabs`).
+  - **HubSpot-style inline property editor** (`components/ui/inline-select.tsx`'s
+    `InlineSelect`, wrapped per-field as `InlineSelectField` in
+    `property-sections.tsx`) — every single-value enum property (Lifecycle
+    Stage, Lead Status, Industry, Industry Detail, Contact Owner, Lead
+    Source, Lead Source Captured, LinkedIn Status, Lifecycle of LinkedIn,
+    Interested Response From, Region, Response Type, Email Host Provider)
+    renders as a plain clickable text value, live at all times — not gated
+    behind that section's pencil/edit-mode toggle the way the remaining
+    text/date/boolean/multi-select fields in the same section still are.
+    Clicking it opens a `Popover` directly below the field with a search
+    input (auto-focused) and a scrollable option list (`Check` icon marking
+    the current value); clicking an option calls `updateContact({ id,
+    [field]: value })` immediately and closes the popover — no separate Save
+    step, matching HubSpot's own inline-edit pattern. This shrank what
+    `LeadInfoSection` in particular needs its section-level edit form for
+    down to just `channelTags` (a multi-select toggle group, not a plain
+    enum, so it keeps the old edit/Save/Cancel flow); `LinkedinOutreachSection`
+    keeps that flow only for `linkedinConnectedOn`/`linkedinPitchNote`/the 4
+    follow-up `Switch`es, and `LinkedinConnectionBreakdownSection` only for
+    the 4 Yes/No `YesNoSelect` fields — Region and Response Type converted
+    to `InlineSelectField` alongside everything else. `InlineSelect` takes a
+    plain `{value, label}[]` options array and an `onSave` callback, so it's
+    intentionally generic rather than contact-specific, even though every
+    current caller lives in `property-sections.tsx`.
+
+  Overview shows `ContactInsightsPanel` (see below) and the 5 most
   recent touches (reusing `TouchTimeline`) with a link into the Activities
   tab. Activities shows `ActivityTimelineTab` — sub-tabs for All/Notes/
   Emails/Calls/LinkedIn/SMS (client-side filtered over the already-fetched
@@ -414,6 +440,12 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     was deleted as dead code). The "+ New Contact" buttons on the Board and
     Contacts table open this panel; on success it navigates to
     `/contacts/[id]` for the newly created contact instead of just closing.
+    A plain `Select` for **Email Host Provider** (Google / Microsoft / Other,
+    optional, no default) sits right below Email address — this one field
+    stays a regular form `Select` rather than the contact detail page's
+    `InlineSelectField` (see below), since a not-yet-created contact has no
+    `id` to instant-save a patch against; it's submitted with the rest of
+    the form on "Create contact" like every other field here.
     `Designation` sits in a 2-column grid next to `Company name`; a bordered
     "LinkedIn Outreach" section near the bottom of the form (right before
     Cancel/Create) groups the remaining 9 LinkedIn fields together — LinkedIn
@@ -719,12 +751,15 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     or ISO), and the "LinkedIn Connection Breakdown" group's own 6 columns
     (Region, Request Sent, Request Accepted, Response, Meeting Booked,
     Response Type — the 4 Yes/No ones via the same `parseBooleanLike` as the
-    follow-up columns). The bare header "Response" deliberately maps to this
+    follow-up columns), and Email Host Provider (`detectEmailHostProvider()`,
+    same case-insensitive label-or-enum-value matching as the other enum
+    columns below). The bare header "Response" deliberately maps to this
     group's `linkedinResponse` boolean rather than `interestedResponseFrom`
     (still reachable via "responsefrom"/"interestedresponse"/
     "interestedresponsefrom") since it's this group's own literal column
     name per spec. The enum-label fields (LinkedIn Status, Lifecycle of
-    LinkedIn, Interested Response From, Region, Response Type) match
+    LinkedIn, Interested Response From, Region, Response Type, Email Host
+    Provider) match
     case-insensitively against either the human-readable label or the raw
     enum value via a shared `buildLabelLookup()` helper, so a re-imported
     export from this same app round-trips correctly. An unrecognized header
@@ -753,7 +788,13 @@ mapping" below for exactly how existing seeded data was carried forward.
     @unique` — made nullable in migration
     `20260731233629_make_contact_email_optional` specifically so CSV-imported
     contacts without a usable email column still import; see the "Email is
-    optional" note under Import/Export below), `workPhone` (renamed from
+    optional" note under Import/Export below), `emailHostProvider` (new
+    nullable enum `EmailHostProvider`: `GOOGLE` / `MICROSOFT` / `OTHER` —
+    which mail platform hosts the contact's email; purely informational,
+    unrelated to `leadSource`/`leadSourceCaptured`, edited via
+    `CompanyInfoSection`'s `InlineSelectField` alongside company info rather
+    than `ContactInfoSection`, since it describes their email
+    infrastructure rather than personal identity), `workPhone` (renamed from
     `phone`), `cellPhone` (new).
   - Company: `company`, `websiteUrl` (new), `websiteTraffic: Int?` (new),
     `numberOfEmployees: Int?` (new).

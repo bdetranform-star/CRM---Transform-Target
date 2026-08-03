@@ -35,6 +35,7 @@ import {
   channelTagEnum,
   regionEnum,
   linkedinResponseTypeEnum,
+  emailHostProviderEnum,
 } from "@/lib/validations";
 import { createContact, getContactOwnerPool } from "@/app/actions/contacts";
 import {
@@ -50,6 +51,7 @@ import {
   INTERESTED_RESPONSE_CHANNEL_LABELS,
   REGION_LABELS,
   LINKEDIN_RESPONSE_TYPE_LABELS,
+  EMAIL_HOST_PROVIDER_LABELS,
 } from "@/lib/status-config";
 
 // Transform-free schema matching what the inputs below actually produce —
@@ -60,6 +62,7 @@ const formSchema = z.object({
   lastName: z.string(),
   jobTitle: z.string(),
   email: z.union([z.string().email("Enter a valid email"), z.literal("")]),
+  emailHostProvider: z.union([emailHostProviderEnum, z.literal("")]),
   workPhone: z.string(),
   cellPhone: z.string(),
   linkedinUrl: z.string(),
@@ -124,6 +127,7 @@ export function ContactCreateForm({
       lastName: "",
       jobTitle: "",
       email: "",
+      emailHostProvider: "",
       workPhone: "",
       cellPhone: "",
       linkedinUrl: "",
@@ -171,6 +175,7 @@ export function ContactCreateForm({
     }
   }
 
+  const emailHostProvider = watch("emailHostProvider");
   const leadStatus = watch("leadStatus");
   const lifecycleStage = watch("lifecycleStage");
   const industry = watch("industry");
@@ -219,6 +224,25 @@ export function ContactCreateForm({
         <Label>Email address</Label>
         <Input type="email" {...register("email")} />
         {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Email Host Provider</Label>
+        <Select
+          value={emailHostProvider || undefined}
+          onValueChange={(v) => setValue("emailHostProvider", v as FormValues["emailHostProvider"])}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="None" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(EMAIL_HOST_PROVIDER_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

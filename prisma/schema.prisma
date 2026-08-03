@@ -217,6 +217,14 @@ enum LinkedinResponseType {
   BAD_TIMING
 }
 
+/// Which mail platform hosts a contact's email — informational only, no
+/// relation to leadSource/leadSourceCaptured (how the lead entered the CRM).
+enum EmailHostProvider {
+  GOOGLE
+  MICROSOFT
+  OTHER
+}
+
 model Contact {
   id             String   @id @default(uuid())
   firstName      String
@@ -228,6 +236,9 @@ model Contact {
   /// any number of NULLs in a unique column/index, so multiple email-less
   /// contacts never collide with each other, only with a real duplicate.
   email          String?  @unique
+  /// Which mail platform hosts this contact's email — informational, edited
+  /// alongside company info since it relates to their email infrastructure.
+  emailHostProvider EmailHostProvider?
   workPhone      String?
   cellPhone      String?
   linkedinUrl    String?

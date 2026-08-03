@@ -133,6 +133,8 @@ export const regionEnum = z.enum(["USA", "AU", "CA", "UK"]);
 
 export const linkedinResponseTypeEnum = z.enum(["INTERESTED", "NOT_INTERESTED", "BAD_TIMING"]);
 
+export const emailHostProviderEnum = z.enum(["GOOGLE", "MICROSOFT", "OTHER"]);
+
 export const channelEnum = z.enum(["EMAIL", "LINKEDIN", "CALL", "SMS", "NOTE"]);
 export const directionEnum = z.enum(["OUTBOUND", "INBOUND"]);
 
@@ -175,6 +177,10 @@ export const contactCreateSchema = z.object({
   jobTitle: optionalTrimmedString,
   email: z
     .union([z.string().trim().email("Enter a valid email"), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? undefined : v)),
+  emailHostProvider: z
+    .union([emailHostProviderEnum, z.literal("")])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
   workPhone: optionalTrimmedString,
@@ -330,6 +336,7 @@ export const importContactRowSchema = z.object({
   contactOwner: z.union([teamMemberEnum, z.literal("")]).optional().default(""),
   designation: z.string().trim().optional().default(""),
   linkedinConnectionStatus: z.union([linkedinConnectionStatusEnum, z.literal("")]).optional().default(""),
+  emailHostProvider: z.union([emailHostProviderEnum, z.literal("")]).optional().default(""),
   linkedinPitchNote: z.string().trim().optional().default(""),
   linkedinFollowUp1: z.boolean().optional(),
   linkedinFollowUp2: z.boolean().optional(),

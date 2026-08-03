@@ -2,6 +2,7 @@
 
 import { createColumnHelper, type RowData } from "@tanstack/react-table";
 import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import type { Contact } from "@prisma/client";
 import { format } from "date-fns";
 
@@ -21,6 +22,7 @@ import {
   INTERESTED_RESPONSE_CHANNEL_LABELS,
   REGION_LABELS,
   LINKEDIN_RESPONSE_TYPE_LABELS,
+  EMAIL_HOST_PROVIDER_LABELS,
 } from "@/lib/status-config";
 
 export type ContactRow = Omit<Contact, never> & {
@@ -42,6 +44,26 @@ const columnHelper = createColumnHelper<ContactRow>();
 
 function formatDate(value: Date | null) {
   return value ? format(value, "MMM d, yyyy") : "—";
+}
+
+/**
+ * A real anchor (not just an onClick handler) so native browser behaviors —
+ * Ctrl/Cmd+click, middle-click, right-click "Open in new tab" — work
+ * automatically. `stopPropagation` keeps a plain left-click from *also*
+ * bubbling up to the row's own onClick (which would otherwise trigger a
+ * redundant same-tab `router.push` to the same URL right alongside the
+ * anchor's own navigation).
+ */
+function NameLink({ contactId, children }: { contactId: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={`/contacts/${contactId}`}
+      className="hover:underline"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </Link>
+  );
 }
 
 export const contactColumns = [
@@ -107,10 +129,16 @@ export const contactColumns = [
   }),
   columnHelper.accessor("firstName", {
     header: "First Name",
+    cell: (info) => <NameLink contactId={info.row.original.id}>{info.getValue()}</NameLink>,
   }),
   columnHelper.accessor("lastName", {
     header: "Last Name",
-    cell: (info) => info.getValue() ?? "",
+    cell: (info) =>
+      info.getValue() ? (
+        <NameLink contactId={info.row.original.id}>{info.getValue()}</NameLink>
+      ) : (
+        ""
+      ),
   }),
   columnHelper.accessor("jobTitle", {
     header: "Job Title",
@@ -119,6 +147,13 @@ export const contactColumns = [
   columnHelper.accessor("email", {
     header: "Email Address",
     cell: (info) => info.getValue() ?? "—",
+  }),
+  columnHelper.accessor("emailHostProvider", {
+    header: "Email Host Provider",
+    cell: (info) => {
+      const v = info.getValue();
+      return v ? EMAIL_HOST_PROVIDER_LABELS[v] : "—";
+    },
   }),
   columnHelper.accessor("workPhone", {
     header: "Work Phone Number",

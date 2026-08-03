@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       industry: row.industry,
       designation: row.designation || null,
       linkedinConnectionStatus: row.linkedinConnectionStatus || null,
+      emailHostProvider: row.emailHostProvider || null,
       linkedinPitchNote: row.linkedinPitchNote || null,
       linkedinFollowUp1: row.linkedinFollowUp1 ?? null,
       linkedinFollowUp2: row.linkedinFollowUp2 ?? null,

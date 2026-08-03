@@ -189,6 +189,7 @@ const SORTABLE_FIELDS = new Set([
   "firstName",
   "lastName",
   "email",
+  "emailHostProvider",
   "company",
   "designation",
   "contactOwner",

@@ -12,6 +12,7 @@ import type {
   InterestedResponseChannel,
   Region,
   LinkedinResponseType,
+  EmailHostProvider,
 } from "@prisma/client";
 
 export const LEAD_STATUS_ORDER: LeadStatus[] = [
@@ -254,4 +255,10 @@ export const LINKEDIN_RESPONSE_TYPE_LABELS: Record<LinkedinResponseType, string>
   INTERESTED: "Interested",
   NOT_INTERESTED: "Not Interested",
   BAD_TIMING: "Bad Timing",
+};
+
+export const EMAIL_HOST_PROVIDER_LABELS: Record<EmailHostProvider, string> = {
+  GOOGLE: "Google",
+  MICROSOFT: "Microsoft",
+  OTHER: "Other",
 };

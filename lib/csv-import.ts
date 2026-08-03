@@ -8,6 +8,7 @@ import type {
   InterestedResponseChannel,
   Region,
   LinkedinResponseType,
+  EmailHostProvider,
 } from "@prisma/client";
 import {
   TEAM_MEMBER_LABELS,
@@ -16,6 +17,7 @@ import {
   INTERESTED_RESPONSE_CHANNEL_LABELS,
   REGION_LABELS,
   LINKEDIN_RESPONSE_TYPE_LABELS,
+  EMAIL_HOST_PROVIDER_LABELS,
 } from "@/lib/status-config";
 import { CHANNEL_TAG_LABELS, CHANNEL_TAG_ORDER } from "@/lib/channel-tags";
 
@@ -45,7 +47,8 @@ export type ImportField =
   | "linkedinRequestAccepted"
   | "linkedinResponse"
   | "linkedinMeetingBooked"
-  | "linkedinResponseType";
+  | "linkedinResponseType"
+  | "emailHostProvider";
 
 const HEADER_ALIASES: Record<string, ImportField> = {
   // name
@@ -61,6 +64,10 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   emailaddress: "email",
   workemail: "email",
   work_email: "email",
+  // email host provider
+  emailhostprovider: "emailHostProvider",
+  emailhost: "emailHostProvider",
+  emailprovider: "emailHostProvider",
   // phone
   phone: "workPhone",
   workphone: "workPhone",
@@ -278,6 +285,11 @@ export function detectLinkedinResponseType(value: string): LinkedinResponseType 
   return LINKEDIN_RESPONSE_TYPE_MAP[value.trim().toLowerCase()];
 }
 
+const EMAIL_HOST_PROVIDER_MAP = buildLabelLookup(EMAIL_HOST_PROVIDER_LABELS);
+export function detectEmailHostProvider(value: string): EmailHostProvider | undefined {
+  return EMAIL_HOST_PROVIDER_MAP[value.trim().toLowerCase()];
+}
+
 const CHANNEL_TAG_MAP = buildLabelLookup(CHANNEL_TAG_LABELS);
 /** Channel Tag is multi-value — splits on comma/semicolon/pipe, matches each piece independently. */
 export function detectChannelTags(value: string): ChannelTag[] {
@@ -345,6 +357,7 @@ export type MappedImportRow = {
   linkedinResponse?: boolean;
   linkedinMeetingBooked?: boolean;
   linkedinResponseType?: LinkedinResponseType;
+  emailHostProvider?: EmailHostProvider;
 };
 
 /** True only when every recognized field on the row is blank/unset — the sole reason to skip a row. */
@@ -374,6 +387,7 @@ function isRowEffectivelyEmpty(row: MappedImportRow): boolean {
     row.linkedinResponse === undefined &&
     row.linkedinMeetingBooked === undefined &&
     row.linkedinResponseType === undefined &&
+    row.emailHostProvider === undefined &&
     row.channelTags.length === 0
     // industry is deliberately excluded — it always carries a default value
     // (FACILITY_MAINTENANCE_COMPANIES) regardless of whether the row had any
@@ -461,6 +475,8 @@ export function mapCsvRows(headers: string[], rows: string[][]): MapCsvRowsResul
         result.linkedinRegion = detectRegion(value);
       } else if (field === "linkedinResponseType") {
         result.linkedinResponseType = detectLinkedinResponseType(value);
+      } else if (field === "emailHostProvider") {
+        result.emailHostProvider = detectEmailHostProvider(value);
       } else {
         result[field] = value;
       }
