@@ -41,15 +41,33 @@ what changed and why.
   headline/sub-headline/stat-badge hero copy block, and the existing
   `LoginForm` unchanged inside a light frosted-glass card
   (`bg-white/90 backdrop-blur-xl`) so its dark-on-white styling needs no
-  rework. `public/login-bg.jpg` isn't committed — CSS paints
-  background-image layers front-to-back and simply skips one that 404s, so
-  the gradient shows through on its own until that file is dropped in;
-  no other code changes are needed once it exists. Fade-in-on-load uses
-  `tw-animate-css`'s `animate-in`/`fade-in`/`slide-in-from-*`/`delay-*`
-  utility classes (already a dependency, used elsewhere for Radix
-  open/close transitions) rather than a new animation library. `app/setup/
-  page.tsx` deliberately keeps its older plain-green-background look —
-  this redesign was scoped to the login page only.
+  rework. `public/login-bg.jpg` is committed (a photo of the offshore team
+  at work, downsized to 2400px wide / ~475KB JPEG at quality 75 — plenty of
+  resolution for a `bg-cover` full-bleed background without shipping the
+  original 5712px/5.8MB source; CSS paints background-image layers
+  front-to-back and simply skips one that 404s, so swapping in a different
+  file, or deleting it, needs no other code changes since the gradient
+  layer shows through underneath either way). The overlay is two stacked
+  `linear-gradient()`s on one div (inline `style`, not Tailwind utilities,
+  since Tailwind's `bg-gradient-to-*` classes only express a single
+  gradient direction): a left-to-right one (`rgba(0,0,0,0.8)` down to
+  `rgba(0,0,0,0.22)`) that's darkest directly behind the hero text on the
+  left and lightest on the right where the photo shows through behind the
+  sign-in card, plus a top-to-bottom one for overall depth — HubSpot's own
+  homepage uses the same directional-darkening trick. The card itself stays
+  readable regardless of what's behind it (its own `bg-white/90` +
+  `backdrop-blur-xl` provide the contrast), so the lighter right-hand
+  overlay is purely so the photo reads as a photo there rather than getting
+  crushed to near-black. Both the background-image layer and the overlay
+  layer carry their own `animate-in fade-in duration-1000` (a slower, more
+  subtle fade than the 500-700ms ones on the header/hero text/card below,
+  so the photo eases in first without competing for attention). Fade-in-on-load
+  elsewhere on the page uses `tw-animate-css`'s
+  `animate-in`/`fade-in`/`slide-in-from-*`/`delay-*` utility classes
+  (already a dependency, used elsewhere for Radix open/close transitions)
+  rather than a new animation library. `app/setup/page.tsx` deliberately
+  keeps its older plain-green-background look — this redesign was scoped to
+  the login page only.
 - `app/setup/page.tsx` — public one-time bootstrap page: a form to create the
   first admin login (email + password) when the `User` table is empty. See
   "Data layer" below for how reuse is prevented.

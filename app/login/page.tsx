@@ -7,22 +7,34 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#0b0d0c]">
       {/*
-        Layered backgrounds, front to back: the hero photo (drop your own
-        file in as public/login-bg.jpg — nothing else needs to change), a
+        Layered backgrounds, front to back: the hero photo
+        (public/login-bg.jpg — a photo of the offshore team at work), a
         soft brand-green glow, then a navy/near-black gradient. CSS paints
         background-image layers in this order and simply skips any layer
         that fails to load, so a missing login-bg.jpg just exposes the
         gradient underneath instead of a broken-image icon.
       */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 animate-in fade-in bg-cover bg-center bg-no-repeat duration-1000"
         style={{
           backgroundImage:
             "url('/login-bg.jpg'), radial-gradient(circle at 25% 15%, rgba(95,206,129,0.16), transparent 55%), linear-gradient(135deg, #0b0d0c 0%, #14435f 55%, #0b0d0c 100%)",
         }}
       />
-      {/* Dark overlay so hero text stays readable over any background photo */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/50 to-black/70" />
+      {/*
+        Dark gradient overlay, HubSpot-homepage style: stronger directly
+        behind the hero text (top-left) so it stays readable over any photo,
+        fading lighter toward the sign-in card (right) so the photo still
+        shows through there — the card has its own opaque white/90 +
+        backdrop-blur background, so it stays readable either way.
+      */}
+      <div
+        className="absolute inset-0 animate-in fade-in duration-1000"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.62) 32%, rgba(0,0,0,0.38) 60%, rgba(0,0,0,0.22) 100%), linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.58) 100%)",
+        }}
+      />
 
       <div className="relative z-10 flex min-h-screen w-full flex-col">
         <header className="flex animate-in fade-in slide-in-from-top-2 items-center gap-2.5 px-6 py-6 duration-500 sm:px-10">
