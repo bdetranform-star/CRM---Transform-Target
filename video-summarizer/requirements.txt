@@ -1,0 +1,8 @@
+# System requirement (not pip-installable): the `ffmpeg` and `ffprobe`
+# binaries must be on PATH. ffmpeg-python only wraps the CLI tool.
+#   Ubuntu/Debian: apt install ffmpeg
+#   macOS:         brew install ffmpeg
+
+opencv-python-headless>=4.8,<5   # headless build: no GUI/Qt deps, this is a CLI/server tool
+numpy>=1.24,<3
+ffmpeg-python>=0.2.0,<0.3
