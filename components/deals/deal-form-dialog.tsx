@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { createDeal, updateDeal } from "@/app/actions/deals";
 import { DEAL_STAGE_LABELS } from "@/lib/status-config";
+import { dealStageEnum } from "@/lib/validations";
 
 type ContactOption = { id: string; firstName: string; lastName: string | null; company: string | null };
 
@@ -32,7 +33,7 @@ const formSchema = z.object({
   contactId: z.string().min(1, "Choose a contact"),
   title: z.string().min(1, "Deal title is required"),
   value: z.string(),
-  stage: z.enum(["NEW", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION", "WON", "LOST"]),
+  stage: dealStageEnum,
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -62,7 +63,7 @@ export function DealFormDialog({
       contactId: deal?.contactId ?? "",
       title: deal?.title ?? "",
       value: deal?.value?.toString() ?? "",
-      stage: deal?.stage ?? "NEW",
+      stage: deal?.stage ?? "INTERESTED",
     },
   });
 

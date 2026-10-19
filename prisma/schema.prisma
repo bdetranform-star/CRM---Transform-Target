@@ -147,12 +147,13 @@ enum Direction {
 }
 
 enum DealStage {
-  NEW
-  QUALIFIED
-  PROPOSAL_SENT
-  NEGOTIATION
-  WON
-  LOST
+  INTERESTED
+  MEETING_INVITE_SENT
+  MEETING_BOOKED
+  DEMO_COMPLETED
+  PROPOSAL_NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
 }
 
 /// Where a LinkedIn connection request currently stands for this contact —
@@ -385,7 +386,7 @@ model Deal {
   contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   title     String
   value     Decimal?  @db.Decimal(12, 2)
-  stage     DealStage @default(NEW)
+  stage     DealStage @default(INTERESTED)
   createdAt DateTime  @default(now())
   closedAt  DateTime?
 

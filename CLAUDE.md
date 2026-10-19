@@ -652,10 +652,17 @@ helpers like `fillTemplateTokens` or `mapCsvRows` live in `lib/`, not
     between the two.
 - **Deals** (`prisma` `Deal` model, `app/actions/deals.ts`,
   `components/deals/`) — a `Contact` can have many `Deal`s (`title`, optional
-  `value`, `stage` enum `NEW → QUALIFIED → PROPOSAL_SENT → NEGOTIATION →
-  WON/LOST`, `createdAt`, optional `closedAt`). Simple list page, filterable
-  by stage; `closedAt` is set when a deal moves to `WON`/`LOST` and cleared if
-  it moves back out of those stages. Deliberately not wired into
+  `value`, `stage` enum `INTERESTED → MEETING_INVITE_SENT → MEETING_BOOKED →
+  DEMO_COMPLETED → PROPOSAL_NEGOTIATION → CLOSED_WON/CLOSED_LOST` — replaced
+  the old generic `NEW/QUALIFIED/PROPOSAL_SENT/NEGOTIATION/WON/LOST` set in
+  migration `20261019000000_replace_deal_stages` (`NEW`/`QUALIFIED` →
+  `INTERESTED`, `PROPOSAL_SENT`/`NEGOTIATION` → `PROPOSAL_NEGOTIATION`,
+  `WON`/`LOST` → `CLOSED_WON`/`CLOSED_LOST`), `createdAt`, optional
+  `closedAt`). Simple list page, filterable by stage via the "All stages"
+  dropdown; each row's Stage pill is itself a dropdown that changes the stage
+  in place (`DEAL_STAGE_PILL_CLASS` in `lib/status-config.ts` for colors).
+  `closedAt` is set when a deal is created in or moves to a
+  `CLOSED_DEAL_STAGES` stage and cleared if it moves back out. Deliberately not wired into
   `leadStatus` transitions (e.g. moving a contact to `OPEN_OPPORTUNITIES`
   does not auto-create a `Deal`, and winning a `Deal` does not auto-update
   `leadStatus`) — kept as two independently-editable records rather than
@@ -968,8 +975,9 @@ mapping" below for exactly how existing seeded data was carried forward.
   charts. Unchanged by the redesign.
 - **`SmsTemplate`** — `name` + `body`, tokens replaced at send time. Unchanged.
 - **`Deal`** (new) — `contactId` (FK → `Contact`, cascade delete), `title`,
-  `value: Decimal?`, `stage` (`DealStage` enum: `NEW` / `QUALIFIED` /
-  `PROPOSAL_SENT` / `NEGOTIATION` / `WON` / `LOST`, default `NEW`),
+  `value: Decimal?`, `stage` (`DealStage` enum: `INTERESTED` /
+  `MEETING_INVITE_SENT` / `MEETING_BOOKED` / `DEMO_COMPLETED` /
+  `PROPOSAL_NEGOTIATION` / `CLOSED_WON` / `CLOSED_LOST`, default `INTERESTED`),
   `createdAt`, `closedAt: DateTime?`.
 - **`Task`** (new) — `contactId` (FK → `Contact`, **nullable**, `SET NULL` on
   delete — a task can exist without a contact), `title`, `dueDate:

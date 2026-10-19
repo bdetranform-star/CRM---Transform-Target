@@ -184,21 +184,36 @@ export const TEAM_MEMBER_ORDER: TeamMember[] = [
 ];
 
 export const DEAL_STAGE_ORDER: DealStage[] = [
-  "NEW",
-  "QUALIFIED",
-  "PROPOSAL_SENT",
-  "NEGOTIATION",
-  "WON",
-  "LOST",
+  "INTERESTED",
+  "MEETING_INVITE_SENT",
+  "MEETING_BOOKED",
+  "DEMO_COMPLETED",
+  "PROPOSAL_NEGOTIATION",
+  "CLOSED_WON",
+  "CLOSED_LOST",
 ];
 
 export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
-  NEW: "New",
-  QUALIFIED: "Qualified",
-  PROPOSAL_SENT: "Proposal Sent",
-  NEGOTIATION: "Negotiation",
-  WON: "Won",
-  LOST: "Lost",
+  INTERESTED: "Interested",
+  MEETING_INVITE_SENT: "Meeting Invite Link Sent",
+  MEETING_BOOKED: "Meeting Booked",
+  DEMO_COMPLETED: "Demo Completed",
+  PROPOSAL_NEGOTIATION: "Proposal / Negotiation",
+  CLOSED_WON: "Closed Won",
+  CLOSED_LOST: "Closed Lost",
+};
+
+export const CLOSED_DEAL_STAGES: DealStage[] = ["CLOSED_WON", "CLOSED_LOST"];
+
+/** Pill classes for each deal stage, light-to-deep along the pipeline. */
+export const DEAL_STAGE_PILL_CLASS: Record<DealStage, string> = {
+  INTERESTED: "bg-sky-50 text-sky-800 border-sky-200",
+  MEETING_INVITE_SENT: "bg-indigo-50 text-indigo-800 border-indigo-200",
+  MEETING_BOOKED: "bg-violet-50 text-violet-800 border-violet-200",
+  DEMO_COMPLETED: "bg-amber-50 text-amber-900 border-amber-200",
+  PROPOSAL_NEGOTIATION: "bg-orange-50 text-orange-900 border-orange-200",
+  CLOSED_WON: "bg-green-100 text-green-900 border-green-300",
+  CLOSED_LOST: "bg-gray-100 text-gray-700 border-gray-300",
 };
 
 export const SEQUENCE_STEPS = [

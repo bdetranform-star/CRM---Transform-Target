@@ -294,7 +294,7 @@ async function main() {
           contactId: connectedContact.id,
           title: "Guardian Fire Protection — annual maintenance contract",
           value: 42000,
-          stage: DealStage.QUALIFIED,
+          stage: DealStage.MEETING_BOOKED,
         },
       });
     }

@@ -95,12 +95,13 @@ export const teamMemberEnum = z.enum([
 ]);
 
 export const dealStageEnum = z.enum([
-  "NEW",
-  "QUALIFIED",
-  "PROPOSAL_SENT",
-  "NEGOTIATION",
-  "WON",
-  "LOST",
+  "INTERESTED",
+  "MEETING_INVITE_SENT",
+  "MEETING_BOOKED",
+  "DEMO_COMPLETED",
+  "PROPOSAL_NEGOTIATION",
+  "CLOSED_WON",
+  "CLOSED_LOST",
 ]);
 
 export const linkedinConnectionStatusEnum = z.enum([
@@ -366,7 +367,7 @@ export const dealCreateSchema = z.object({
     .union([z.coerce.number().min(0), z.literal("")])
     .optional()
     .transform((v) => (v === "" || v === undefined ? undefined : v)),
-  stage: dealStageEnum.default("NEW"),
+  stage: dealStageEnum.default("INTERESTED"),
 });
 
 export const dealUpdateSchema = dealCreateSchema.partial().extend({

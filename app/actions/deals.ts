@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/require-auth";
 import { dealCreateSchema, dealUpdateSchema, dealStageEnum } from "@/lib/validations";
+import { CLOSED_DEAL_STAGES } from "@/lib/status-config";
 
 export async function getDeals(stage?: string) {
   await requireAuth();
@@ -31,7 +32,9 @@ export async function getDealContactOptions() {
 export async function createDeal(input: unknown) {
   await requireAuth();
   const data = dealCreateSchema.parse(input);
-  const deal = await prisma.deal.create({ data });
+  const deal = await prisma.deal.create({
+    data: { ...data, closedAt: CLOSED_DEAL_STAGES.includes(data.stage) ? new Date() : null },
+  });
   revalidatePath("/deals");
   revalidatePath("/dashboard");
   return deal;
@@ -43,7 +46,7 @@ export async function updateDeal(input: unknown) {
 
   let closedAt: Date | null | undefined;
   if (data.stage) {
-    const isClosedStage = data.stage === "WON" || data.stage === "LOST";
+    const isClosedStage = CLOSED_DEAL_STAGES.includes(data.stage);
     if (isClosedStage) {
       const existing = await prisma.deal.findUnique({ where: { id }, select: { closedAt: true } });
       closedAt = existing?.closedAt ?? new Date();

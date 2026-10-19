@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Plus, Handshake } from "lucide-react";
-import type { Deal } from "@prisma/client";
+import type { Deal, DealStage } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,23 +21,20 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { DealFormDialog } from "./deal-form-dialog";
-import { DEAL_STAGE_LABELS } from "@/lib/status-config";
+import { updateDeal } from "@/app/actions/deals";
+import { cn } from "@/lib/utils";
+import {
+  DEAL_STAGE_LABELS,
+  DEAL_STAGE_ORDER,
+  DEAL_STAGE_PILL_CLASS,
+} from "@/lib/status-config";
 
 type DealWithContact = Deal & {
   contact: { id: string; firstName: string; lastName: string | null; company: string | null };
 };
 type ContactOption = { id: string; firstName: string; lastName: string | null; company: string | null };
-
-const STAGE_BADGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  NEW: "outline",
-  QUALIFIED: "secondary",
-  PROPOSAL_SENT: "secondary",
-  NEGOTIATION: "default",
-  WON: "default",
-  LOST: "destructive",
-};
 
 export function DealsView({
   initialDeals,
@@ -59,6 +56,16 @@ export function DealsView({
     router.push(`${pathname}?${next.toString()}`);
   }
 
+  async function handleStageChange(dealId: string, stage: DealStage) {
+    try {
+      await updateDeal({ id: dealId, stage });
+      toast.success(`Stage set to ${DEAL_STAGE_LABELS[stage]}`);
+      router.refresh();
+    } catch {
+      toast.error("Failed to update stage");
+    }
+  }
+
   function handleNew() {
     setEditingDeal(null);
     setDialogOpen(true);
@@ -73,14 +80,14 @@ export function DealsView({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <Select value={searchParams.get("stage") ?? "ALL"} onValueChange={setStageFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-60">
             <SelectValue placeholder="All stages" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All stages</SelectItem>
-            {Object.entries(DEAL_STAGE_LABELS).map(([value, label]) => (
+            {DEAL_STAGE_ORDER.map((value) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {DEAL_STAGE_LABELS[value]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -119,8 +126,28 @@ export function DealsView({
                     {deal.contact.company ? ` — ${deal.contact.company}` : ""}
                   </TableCell>
                   <TableCell>{deal.value ? `$${Number(deal.value).toLocaleString()}` : "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={STAGE_BADGE_VARIANT[deal.stage]}>{DEAL_STAGE_LABELS[deal.stage]}</Badge>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={deal.stage}
+                      onValueChange={(v) => handleStageChange(deal.id, v as DealStage)}
+                    >
+                      <SelectTrigger
+                        size="sm"
+                        className={cn(
+                          "data-[size=sm]:h-7 w-auto gap-1 rounded-full border px-2.5 text-xs font-medium shadow-none",
+                          DEAL_STAGE_PILL_CLASS[deal.stage]
+                        )}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEAL_STAGE_ORDER.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {DEAL_STAGE_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>{new Date(deal.createdAt).toLocaleDateString()}</TableCell>
                 </TableRow>
