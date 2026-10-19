@@ -110,7 +110,7 @@ export function DealsView({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead>Reply</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Stage</TableHead>
